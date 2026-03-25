@@ -18,41 +18,42 @@ jobs:
             artifact_name: STA-Translator-Windows
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install -r requirements.txt
-      shell: bash
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+        shell: bash
 
-    - name: Build with PyInstaller
-      run: |
-        pyinstaller app.spec
-      shell: bash
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller app.spec
+        shell: bash
 
-    - name: Rename and Prepare Artifact
-      run: |
-        mkdir -p output
-        if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          mv dist/${{ matrix.artifact_name }}.exe output/${{ matrix.artifact_name }}.exe
-        else
-          mv dist/${{ matrix.artifact_name }} output/${{ matrix.artifact_name }}
-        fi
-      shell: bash
+      - name: Rename and Prepare Artifact
+        run: |
+          mkdir -p output
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            mv dist/STA-Translator.exe output/${{ matrix.artifact_name }}.exe
+          else
+            mv dist/STA-Translator output/${{ matrix.artifact_name }}
+            chmod +x output/${{ matrix.artifact_name }}
+          fi
+        shell: bash
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.artifact_name }}
-        path: output/*
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: output/*
 
   publish:
     needs: build
@@ -61,12 +62,12 @@ jobs:
     permissions:
       contents: write
     steps:
-    - name: Download All Artifact
-      uses: actions/download-artifact@v4
-      with:
-        path: all-artifacts
-        
-    - name: Upload Release Assets
-      uses: softprops/action-gh-release@v2
-      with:
-        files: all-artifacts/**/*
+      - name: Download All Artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: all-artifacts/**/*
