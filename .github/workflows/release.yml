@@ -1,0 +1,72 @@
+name: Build Release Executables
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: STA-Translator-Linux
+            asset_name: STA-Translator-Linux
+          - os: windows-latest
+            artifact_name: STA-Translator-Windows
+            asset_name: STA-Translator-Windows.exe
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller --name "${{ matrix.artifact_name }}" --noconsole --windowed --onefile main.py
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: |
+          dist/${{ matrix.artifact_name }}
+          dist/${{ matrix.artifact_name }}.exe
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+    steps:
+    - name: Download Linux Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: STA-Translator-Linux
+        path: STA-Translator-Linux
+        
+    - name: Download Windows Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: STA-Translator-Windows
+        path: STA-Translator-Windows
+        
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          STA-Translator-Linux/*
+          STA-Translator-Windows/*
