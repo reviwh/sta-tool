@@ -51,6 +51,18 @@ If you want to build a standalone executable using PyInstaller:
 pyinstaller --name "STA Translator" --noconsole --windowed main.py
 ```
 
+### Building an AppImage (Linux)
+
+To build a standalone `.AppImage` locally, use the provided bash script (requires you to have installed `python-appimage`):
+
+```bash
+./build_appimage.sh
+```
+
+### Automated GitHub Releases
+
+This repository includes a pre-configured **GitHub Actions Workflow**. Whenever you publish a new Release on GitHub, the workflow will automatically compile and attach `.exe` (for Windows) and Linux binaries directly to your release.
+
 ## Contributing
 
 Contributions are welcome! If you have suggestions or bug reports, please open an issue or submit a pull request.

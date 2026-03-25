@@ -35,7 +35,7 @@ from ui.components.welcome_panel import WelcomePanel
 class StaTranslator(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("STA Tool")
+        self.setWindowTitle("STA Translator Tool")
         self.setWindowIcon(QIcon("assets/icon.svg"))
         self.resize(1024, 640)
 
@@ -341,7 +341,7 @@ class StaTranslator(QMainWindow):
         dest, _ = QFileDialog.getSaveFileName(self, "Save Project JSON", "", "*.json")
         if dest:
             self.manager.extract(src, dest)
-            self.setWindowTitle(f"STA Tools - {Path(*Path(dest).parts[-2:])}")
+            self.setWindowTitle(f"STA Translator Tool - {Path(*Path(dest).parts[-2:])}")
 
     def handle_load(self):
         if not self.check_unsaved_changes():
@@ -352,7 +352,7 @@ class StaTranslator(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Open Project JSON", "", "*.json")
         if path:
             self.manager.load(path)
-            self.setWindowTitle(f"STA Tools - {Path(*Path(path).parts[-2:])}")
+            self.setWindowTitle(f"STA Translator Tool - {Path(*Path(path).parts[-2:])}")
 
     def handle_save(self):
         if not self.manager.is_active():
@@ -374,7 +374,7 @@ class StaTranslator(QMainWindow):
                 path += ".json"
             self.manager.path = path
             self.manager.save(path)
-            self.setWindowTitle(f"STA Tools - {os.path.basename(path)}")
+            self.setWindowTitle(f"STA Translator Tool - {Path(*Path(path).parts[-2:])}")
             self.update_ui_state()
             self.show_toast("Project saved successfully")
 
@@ -599,9 +599,9 @@ class StaTranslator(QMainWindow):
         )
         if is_active:
             title_suffix = " *" if self.manager.is_dirty else ""
-            self.setWindowTitle(f"STA Tools - {p_name}{title_suffix}")
+            self.setWindowTitle(f"STA Translator Tool - {Path(*Path(p_name).parts[-2:])}{title_suffix}")
         else:
-            self.setWindowTitle("STA Tool")
+            self.setWindowTitle("STA Translator Tool")
 
         self.status_plugin_label.setText(
             f"Plugin: {plugin_name}" if plugin_name else ""
