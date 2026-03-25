@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=STA Translator Tool
-Exec=main
-Icon=sta-translator
-Type=Application
-Categories=Development;Utility;
-Terminal=false
-Comment=STA Tool for string dialogue translations

@@ -19,6 +19,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QTimer
 from PyQt6.QtGui import QShortcut, QKeySequence, QFontDatabase, QFont, QIcon
 
 from core.project_manager import ProjectManager
+from core.utils import resource_path
 
 # Import New Components
 from ui.theme import Theme
@@ -36,7 +37,7 @@ class StaTranslator(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("STA Translator Tool")
-        self.setWindowIcon(QIcon("assets/icon.svg"))
+        self.setWindowIcon(QIcon(resource_path("assets/icon.svg")))
         self.resize(1024, 640)
 
         self.manager = ProjectManager()
@@ -47,8 +48,8 @@ class StaTranslator(QMainWindow):
         self.toast = None  # Lazy init in show_toast
         self.font_family = "Noto Sans JP"
 
-        font_path = "assets/fonts/NotoSansJP-Regular.ttf"
-        font_mono_path = "assets/fonts/JetBrainsMono.ttf"
+        font_path = resource_path("assets/fonts/NotoSansJP-Regular.ttf")
+        font_mono_path = resource_path("assets/fonts/JetBrainsMono.ttf")
         font_id = QFontDatabase.addApplicationFont(font_path)
         font_mono_id = QFontDatabase.addApplicationFont(font_mono_path)
 
@@ -599,7 +600,9 @@ class StaTranslator(QMainWindow):
         )
         if is_active:
             title_suffix = " *" if self.manager.is_dirty else ""
-            self.setWindowTitle(f"STA Translator Tool - {Path(*Path(p_name).parts[-2:])}{title_suffix}")
+            self.setWindowTitle(
+                f"STA Translator Tool - {Path(*Path(p_name).parts[-2:])}{title_suffix}"
+            )
         else:
             self.setWindowTitle("STA Translator Tool")
 

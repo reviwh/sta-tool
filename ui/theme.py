@@ -1,6 +1,7 @@
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QPainter, QFont
 from PyQt6.QtCore import Qt
 import os
+from core.utils import resource_path
 
 
 class Theme:
@@ -48,7 +49,7 @@ class Theme:
     PADDING = 4
     SPACING = 8
 
-    ICON_PATH = "assets/icons/white/"
+    ICON_PATH = resource_path("assets/icons/white/")
     TOAST_SHORT = 1000
     TOAST_NORMAL = 3000
 
@@ -74,7 +75,7 @@ class Theme:
             cls.TEXT_SECONDARY = "#6B7280"
             cls.BORDER = "#E5E7EB"
             cls.SECONDARY_BG_COLOR = "#F1F5F9"
-            cls.ICON_PATH = "assets/icons/black/"
+            cls.ICON_PATH = resource_path("assets/icons/black/")
         else:
             cls.BG_APP = "#212121"
             cls.BG_PANEL = "#181818"
@@ -84,7 +85,7 @@ class Theme:
             cls.TEXT_SECONDARY = "#9CA3AF"
             cls.BORDER = "#2f2f2f"
             cls.SECONDARY_BG_COLOR = "#3a3a3a"
-            cls.ICON_PATH = "assets/icons/white/"
+            cls.ICON_PATH = resource_path("assets/icons/white/")
 
         # Update global style caches
         cls.refresh_styles()

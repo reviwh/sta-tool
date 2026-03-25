@@ -8,7 +8,6 @@ STA Translator Tool is a desktop application built with PyQt6 that provides an i
 - **String Extraction & Repacking**: Automatically extract translatable strings from supported file formats and securely repack them.
 - **Plugin System**: Extend support to different games by adding custom JSON plugin schemas (e.g., *Kamen Rider Battride War*).
 - **Search & Replace**: Efficiently find and modify specific dialogue lines across hundreds of files.
-- **Auto-Save & Safe Close**: Tracks unsaved changes and automatically saves to a temporary backup to prevent data loss.
 - **Modern UI**: Clean and customizable dark/fluid UI with configurable typography, smooth animations, and toast notifications.
 
 ## Requirements
@@ -48,15 +47,7 @@ python main.py
 If you want to build a standalone executable using PyInstaller:
 
 ```bash
-pyinstaller --name "STA Translator" --noconsole --windowed main.py
-```
-
-### Building an AppImage (Linux)
-
-To build a standalone `.AppImage` locally, use the provided bash script (requires you to have installed `python-appimage`):
-
-```bash
-./build_appimage.sh
+pyinstaller app.spec
 ```
 
 ### Automated GitHub Releases

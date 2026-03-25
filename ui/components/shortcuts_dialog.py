@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QKeySequence, QIcon
 from ui.theme import Theme
+from core.utils import resource_path
 
 
 class ShortcutsDialog(QDialog):
@@ -75,7 +76,7 @@ class ShortcutsDialog(QDialog):
         btn_layout.addStretch()
         close_btn = QPushButton("Close")
         close_btn.setFont(Theme.FONT)
-        close_btn.setIcon(QIcon(os.path.join("assets/icons/white", "close.svg")))
+        close_btn.setIcon(QIcon(resource_path("assets/icons/white/close.svg")))
         close_btn.setIconSize(QSize(16, 16))
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet(Theme.DEFAULT_BUTTON_STYLE)

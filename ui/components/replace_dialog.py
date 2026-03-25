@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon
 from ui.theme import Theme
+from core.utils import resource_path
 
 
 class ReplaceDialog(QDialog):
@@ -106,7 +107,7 @@ class ReplaceDialog(QDialog):
         self.btn_replace = QPushButton("Replace All")
         self.btn_replace.setFont(Theme.FONT)
         self.btn_replace.setIcon(
-            QIcon(os.path.join("assets/icons/white", "find_replace.svg"))
+            QIcon(resource_path("assets/icons/white/find_replace.svg"))
         )
         self.btn_replace.setIconSize(icon_size)
         self.btn_replace.setToolTip("Execute replacement logic")

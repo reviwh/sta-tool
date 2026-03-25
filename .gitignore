@@ -1,0 +1,30 @@
+.git
+
+# Temporary files
+note.txt
+Translation.json
+*temp
+string (2)
+
+# Virtual Environment
+venv/
+env/
+*venv/
+
+# Python Cache
+*/__pycache__
+__pycache__/
+*.pyc
+*.pyo
+
+# IDEs
+.vscode/
+.idea/
+
+# Local Utility Scripts
+replace.sh
+split_icon.py
+
+# Build Directories
+build/
+dist/

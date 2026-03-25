@@ -14,10 +14,8 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact_name: STA-Translator-Linux
-            asset_name: STA-Translator-Linux
           - os: windows-latest
             artifact_name: STA-Translator-Windows
-            asset_name: STA-Translator-Windows.exe
 
     steps:
     - uses: actions/checkout@v4
@@ -31,19 +29,30 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install pyinstaller
         pip install -r requirements.txt
+      shell: bash
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --name "${{ matrix.artifact_name }}" --noconsole --windowed --onefile main.py
+        pyinstaller app.spec
+      shell: bash
+
+    - name: Rename and Prepare Artifact
+      run: |
+        mkdir -p output
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          mv dist/${{ matrix.artifact_name }}.exe output/${{ matrix.artifact_name }}.exe
+        else
+          mv dist/${{ matrix.artifact_name }} output/${{ matrix.artifact_name }}
+        fi
+      shell: bash
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
-        path: |
-          dist/${{ matrix.artifact_name }}
-          dist/${{ matrix.artifact_name }}.exe
+        path: output/*
 
   publish:
     needs: build
@@ -52,21 +61,12 @@ jobs:
     permissions:
       contents: write
     steps:
-    - name: Download Linux Artifact
+    - name: Download All Artifact
       uses: actions/download-artifact@v4
       with:
-        name: STA-Translator-Linux
-        path: STA-Translator-Linux
-        
-    - name: Download Windows Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: STA-Translator-Windows
-        path: STA-Translator-Windows
+        path: all-artifacts
         
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v2
       with:
-        files: |
-          STA-Translator-Linux/*
-          STA-Translator-Windows/*
+        files: all-artifacts/**/*
