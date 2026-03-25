@@ -1,0 +1,62 @@
+[
+    {
+        "hex": "EE8080",
+        "string": "[L-Analog]"
+    },
+    {
+        "hex": "EE8081",
+        "string": "[R-Analog]"
+    },
+    {
+        "hex": "EE8082",
+        "string": "[L3]"
+    },
+    {
+        "hex": "EE8083",
+        "string": "[R3]"
+    },
+    {
+        "hex": "EE8084",
+        "string": "[Circle]"
+    },
+    {
+        "hex": "EE8085",
+        "string": "[Cross]"
+    },
+    {
+        "hex": "EE8086",
+        "string": "[Square]"
+    },
+    {
+        "hex": "EE8087",
+        "string": "[Triangle]"
+    },
+    {
+        "hex": "EE8088",
+        "string": "[L1]"
+    },
+    {
+        "hex": "EE8089",
+        "string": "[L2]"
+    },
+    {
+        "hex": "EE808A",
+        "string": "[R1]"
+    },
+    {
+        "hex": "EE808B",
+        "string": "[R2]"
+    },
+    {
+        "hex": "EE808C",
+        "string": "[Select]"
+    },
+    {
+        "hex": "EE808D",
+        "string": "[Start]"
+    },
+    {
+        "hex": "EE808F",
+        "string": "[D-Pad]"
+    }
+]
