@@ -9,19 +9,17 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QButtonGroup,
-    QFrame,
-    QScrollArea,
     QWidget,
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon
 from ui.theme import Theme
-from core.utils import resource_path
 
 
 class ReplaceDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("replace_dialog")
         self.setWindowTitle("Replace All")
         self.setFixedWidth(350)
 
@@ -36,36 +34,28 @@ class ReplaceDialog(QDialog):
         top_layout.setContentsMargins(8, 8, 8, 8)
         top_layout.setSpacing(4)
 
-        label_style = f"color: {Theme.TEXT_MAIN}; background-color: transparent; "
-
-        # 1. Find
         self.find_label = QLabel("Find word:")
         self.find_label.setFont(Theme.FONT)
-        self.find_label.setStyleSheet(label_style)
         top_layout.addWidget(self.find_label)
         self.find_edit = QLineEdit()
         self.find_edit.setFont(Theme.FONT)
         top_layout.addWidget(self.find_edit)
         top_layout.addSpacing(4)
 
-        # 2. Replace
         self.replace_label = QLabel("Replace with:")
         self.replace_label.setFont(Theme.FONT)
-        self.replace_label.setStyleSheet(label_style)
         top_layout.addWidget(self.replace_label)
         self.replace_edit = QLineEdit()
         self.replace_edit.setFont(Theme.FONT)
         top_layout.addWidget(self.replace_edit)
         top_layout.addSpacing(4)
 
-        # 3. Source Selection
         source_layout = QHBoxLayout()
         source_layout.setContentsMargins(0, 0, 0, 0)
         source_layout.setSpacing(8)
 
         macth_label = QLabel("Match against:")
         macth_label.setFont(Theme.FONT)
-        macth_label.setStyleSheet(label_style)
         source_layout.addWidget(macth_label)
         source_layout.addStretch()
 
@@ -86,7 +76,6 @@ class ReplaceDialog(QDialog):
         top_layout.addLayout(source_layout)
         top_layout.addSpacing(4)
 
-        # 4. Options
         self.case_check = QCheckBox("Case Sensitive")
         self.case_check.setFont(Theme.FONT)
         self.case_check.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -96,11 +85,8 @@ class ReplaceDialog(QDialog):
         layout.addLayout(top_layout)
         layout.addStretch()
 
-        # 5. Buttons
         container = QWidget()
-        container.setStyleSheet(
-            f"QWidget {{background-color: {Theme.BG_CONTAINER}; border-top: 1px solid {Theme.BORDER};}}"
-        )
+        container.setObjectName("replace_footer")
         btn_layout = QHBoxLayout(container)
         btn_layout.setContentsMargins(8, 8, 8, 8)
         btn_layout.setSpacing(8)
@@ -108,9 +94,7 @@ class ReplaceDialog(QDialog):
         icon_size = QSize(16, 16)
         self.btn_replace = QPushButton("Replace All")
         self.btn_replace.setFont(Theme.FONT)
-        self.btn_replace.setIcon(
-            QIcon(resource_path("assets/icons/white/find_replace.svg"))
-        )
+        self.btn_replace.setIcon(Theme.get_primary_icon("find_replace"))
         self.btn_replace.setIconSize(icon_size)
         self.btn_replace.setToolTip("Execute replacement logic")
         self.btn_replace.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -123,6 +107,7 @@ class ReplaceDialog(QDialog):
         self.btn_cancel.setIconSize(icon_size)
         self.btn_cancel.setToolTip("Discard changes and close dialog")
         self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_cancel.setAutoDefault(False)
         self.btn_cancel.clicked.connect(self.reject)
 
         btn_layout.addStretch()
@@ -139,48 +124,4 @@ class ReplaceDialog(QDialog):
         }
 
     def apply_theme(self):
-        self.setStyleSheet(
-            f"""
-            QDialog {{ 
-                background-color: {Theme.BG_APP}; 
-                color: {Theme.TEXT_MAIN}; 
-            }}
-            QLineEdit {{ 
-                background-color: {Theme.BG_PANEL}; 
-                color: {Theme.TEXT_MAIN}; 
-                border: 1px solid {Theme.BORDER}; 
-                border-radius: 4px; 
-                padding: 4px; 
-            }}
-            QCheckBox {{ 
-                color: {Theme.TEXT_MAIN}; 
-                background-color: transparent;
-            }}
-            QCheckBox::indicator, QRadioButton::indicator {{
-                width: 18px;
-                height: 18px;
-                margin-top: 1px
-            }}
-            QCheckBox::indicator:checked {{
-                image: url({os.path.join(Theme.ICON_PATH, "check_box.svg")});
-            }}
-            QCheckBox::indicator:unchecked {{
-                image: url({os.path.join(Theme.ICON_PATH, "check_box_blank.svg")});
-            }}
-            QRadioButton {{ 
-                color: {Theme.TEXT_MAIN}; 
-                background-color: transparent;
-            }}
-            QRadioButton::indicator:checked {{
-                image: url({os.path.join(Theme.ICON_PATH, "radio_button_check.svg")});
-            }}
-            QRadioButton::indicator:unchecked {{
-                image: url({os.path.join(Theme.ICON_PATH, "radio_button_uncheck.svg")});
-            }}
-            QFrame {{
-                color: {Theme.BORDER};
-            }}
-            {Theme.DEFAULT_BUTTON_STYLE}
-            {Theme.TOOLTIP_STYLE}
-        """
-        )
+        pass

@@ -31,12 +31,9 @@ class StringListComponent(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # 1. Path Label
         self.path_label = QLabel("Select a file...")
+        self.path_label.setObjectName("path_label")
         self.path_label.setFont(Theme.FONT)
-        self.path_label.setStyleSheet(
-            f"color: {Theme.TEXT_SECONDARY}; font-style: italic; background: transparent;"
-        )
         self.path_label.setVisible(False)
 
         icon_size = QSize(16, 16)
@@ -85,7 +82,6 @@ class StringListComponent(QWidget):
         item = self.list_widget.item(row_idx)
         if not item:
             return
-
         if len(text.strip()) > 0:
             item.setBackground(QColor(Theme.SUCCESS_BG_COLOR))
         elif len(text) > 0 and len(text.strip()) == 0:
@@ -123,22 +119,15 @@ class StringListComponent(QWidget):
 
     def update_item_text(self, row, text):
         item = self.list_widget.item(row)
-
         if not item:
             return
-
         if not text.strip():
             orig = item.data(Qt.ItemDataRole.UserRole + 1)
             txt = orig.replace("\\n", " ")
         else:
             txt = text.replace("\\n", " ")
-
         display = self._truncated_text(txt)
         item.setText(display)
-
-    def _on_item_clicked(self, item):
-        real_idx = item.data(Qt.ItemDataRole.UserRole)
-        self.string_selected.emit(real_idx)
 
     def _on_row_changed(self, row_idx):
         if row_idx < 0:
@@ -160,43 +149,10 @@ class StringListComponent(QWidget):
             display_path = "/".join(parts[1:])
         else:
             display_path = path
-
         self.path_label.setText(display_path)
-
-        # Hide if it's the placeholder "Select a file..."
         is_placeholder = path == "Select a file..." or not path
         self.path_label.setVisible(not is_placeholder)
 
     def apply_theme(self):
-        self.setStyleSheet(
-            f"""
-            {Theme.BUTTON_STYLE}
-            {Theme.TOOLTIP_STYLE}
-        """
-        )
-        self.path_label.setStyleSheet(
-            f"color: {Theme.TEXT_SECONDARY}; font-style: italic; background: transparent;"
-        )
-
         self.btn_import_txt.setIcon(Theme.get_icon("txt_import"))
         self.btn_replace_all.setIcon(Theme.get_icon("find_replace"))
-
-        self.list_widget.setStyleSheet(
-            f"""
-            QListWidget {{ 
-                border: none; 
-                background-color: {Theme.BG_PANEL}; 
-                color: {Theme.TEXT_MAIN}; 
-                border-top: 1px solid {Theme.BORDER};
-                }}
-            QListWidget::item:hover {{
-                background-color: {Theme.PRIMARY_HOVER};
-            }}
-            QListWidget::item:selected {{
-                background-color: {Theme.PRIMARY};
-                color: white;
-            }}
-        """
-        )
-        self.list_widget.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-        self.list_widget.horizontalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)

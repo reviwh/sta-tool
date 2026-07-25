@@ -1,8 +1,8 @@
-import os
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
     QLabel,
     QPushButton,
     QScrollArea,
@@ -12,14 +12,14 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QKeySequence, QIcon
 from ui.theme import Theme
-from core.utils import resource_path
 
 
 class ShortcutsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("shortcuts_dialog")
         self.setWindowTitle("Application Shortcuts")
-        self.setFixedWidth(450)
+        self.setFixedWidth(600)
         self.setMinimumHeight(400)
 
         self.init_ui()
@@ -30,7 +30,6 @@ class ShortcutsDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        # Scroll Area for shortcuts
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -39,99 +38,76 @@ class ShortcutsDialog(QDialog):
         scroll.setWidget(content)
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(8, 8, 8, 8)
-        content_layout.setSpacing(4)
+        content_layout.setSpacing(8)
 
-        # Section: General
-        self._add_section(content_layout, "General Actions")
-        self._add_shortcut(content_layout, "Ctrl+N", "Create New Project")
-        self._add_shortcut(content_layout, "Ctrl+O", "Open Project")
-        self._add_shortcut(content_layout, "Ctrl+S", "Save Project")
-        self._add_shortcut(content_layout, "Ctrl+Shift+S", "Save Project As...")
-        self._add_shortcut(content_layout, "Ctrl+W", "Close Project")
-        self._add_shortcut(content_layout, "F5", "Repack to .sta")
-        self._add_shortcut(content_layout, "Ctrl+P", "Plugin Management")
-        self._add_shortcut(content_layout, "Ctrl+H", "Toggle Help / Shortcuts")
+        self._add_shortcuts_section(content_layout, "General Actions", [
+            ("Ctrl+N", "Create New Project"),
+            ("Ctrl+O", "Open Project"),
+            ("Ctrl+S", "Save Project"),
+            ("Ctrl+Shift+S", "Save Project As..."),
+            ("Ctrl+W", "Close Project"),
+            ("Ctrl+I", "Import CSV"),
+            ("Ctrl+E", "Export CSV"),
+            ("F5", "Repack to .sta"),
+            ("Ctrl+Shift+F", "Replace All"),
+            ("Ctrl+P", "Apply Plugin"),
+            ("Ctrl+Shift+R", "Remove Plugin"),
+            ("Ctrl+H", "Toggle Help / Shortcuts"),
+        ])
 
-        content_layout.addSpacing(8)
-
-        # Section: Editor
-        self._add_section(content_layout, "Editor & Navigation")
-        self._add_shortcut(content_layout, "Ctrl+Enter", "Next String Line")
-        self._add_shortcut(content_layout, "Ctrl+Shift+Enter", "Previous String Line")
-        self._add_shortcut(content_layout, "Ctrl+Shift+,", "Decrease Font size")
-        self._add_shortcut(content_layout, "Ctrl+Shift+.", "Increase Font size")
+        self._add_shortcuts_section(content_layout, "Editor & Navigation", [
+            ("Ctrl+Enter", "Next String Line"),
+            ("Ctrl+Shift+Enter", "Previous String Line"),
+            ("Ctrl+Shift+,", "Decrease Font size"),
+            ("Ctrl+Shift+.", "Increase Font size"),
+        ])
 
         content_layout.addStretch()
         layout.addWidget(scroll)
 
         layout.addStretch()
 
-        # Close Button
         container = QWidget()
-        container.setStyleSheet(
-            f"background-color: {Theme.BG_CONTAINER}; border-top: 1px solid {Theme.BORDER}"
-        )
+        container.setObjectName("shortcuts_footer")
         btn_layout = QHBoxLayout(container)
         btn_layout.setContentsMargins(8, 8, 8, 8)
         btn_layout.addStretch()
         close_btn = QPushButton("Close")
         close_btn.setFont(Theme.FONT)
-        close_btn.setIcon(QIcon(resource_path("assets/icons/white/close.svg")))
+        close_btn.setIcon(Theme.get_icon("close"))
         close_btn.setIconSize(QSize(16, 16))
+        close_btn.setAutoDefault(False)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        close_btn.setStyleSheet(Theme.DEFAULT_BUTTON_STYLE)
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         layout.addWidget(container)
 
     def apply_theme(self):
-        self.setStyleSheet(
-            f"QDialog {{ background-color: {Theme.BG_APP}; color: {Theme.TEXT_MAIN};}}"
-        )
-        # Apply to children specifically if needed, but setStyleSheet on self should propagate mostly
-        self.apply_global_styles()
+        pass
 
-    def apply_global_styles(self):
-        # Apply Scrollbar style to possible scroll areas
-        for scroll in self.findChildren(QScrollArea):
-            scroll.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-            scroll.horizontalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-            scroll.setStyleSheet(
-                "QScrollArea { border: none; background-color: transparent; }"
-            )
-
-    def _add_section(self, layout, title):
+    def _add_shortcuts_section(self, parent_layout, title, shortcuts):
         lbl = QLabel(title)
+        lbl.setObjectName("section_label")
         lbl.setFont(Theme.FONT)
-        lbl.setStyleSheet(
-            f"QLabel {{ color: {Theme.PRIMARY}; font-weight: 500; font-size: 11pt; background-color: transparent; }}"
-        )
-        layout.addWidget(lbl)
+        parent_layout.addWidget(lbl)
 
-    def _add_shortcut(self, layout, keys, description):
-        row = QHBoxLayout()
-        row.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        row.addSpacing(8)
+        grid = QGridLayout()
+        grid.setContentsMargins(8, 0, 0, 0)
+        grid.setSpacing(4)
 
-        key_lbl = QLabel(keys)
-        key_lbl.setFont(Theme.MONO_FONT)
-        key_lbl.setStyleSheet(
-            f"""
-            border: 1px solid {Theme.BORDER};
-            background-color: {Theme.SECONDARY_BG_COLOR};
-            color: {Theme.TEXT_MAIN};
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-weight: bold;
-            """
-        )
+        for i, (keys, description) in enumerate(shortcuts):
+            col = i % 2
+            row = i // 2
 
-        desc_lbl = QLabel(description)
-        desc_lbl.setFont(Theme.FONT)
-        desc_lbl.setStyleSheet(
-            f"color: {Theme.TEXT_MAIN}; background-color: transparent;"
-        )
+            desc_lbl = QLabel(description)
+            desc_lbl.setObjectName("shortcut_desc")
+            desc_lbl.setFont(Theme.FONT)
 
-        row.addWidget(desc_lbl, 1)
-        row.addWidget(key_lbl)
-        layout.addLayout(row)
+            key_lbl = QLabel(keys)
+            key_lbl.setObjectName("shortcut_key")
+            key_lbl.setFont(Theme.MONO_FONT)
+
+            grid.addWidget(desc_lbl, row, col * 2)
+            grid.addWidget(key_lbl, row, col * 2 + 1)
+
+        parent_layout.addLayout(grid)
