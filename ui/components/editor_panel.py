@@ -1,4 +1,3 @@
-# ui/components/editor_panel.py
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -17,47 +16,35 @@ from ui.theme import Theme
 
 
 class EditorPanelComponent(QWidget):
-    # Event when user stops typing (debounce save)
     translation_changed = pyqtSignal(str)
-    # Signal untuk navigasi baris
     request_next = pyqtSignal()
     request_prev = pyqtSignal()
-    # Signal saat font berubah di UI (untuk di-save ke config)
     font_changed = pyqtSignal(str, int)
     copy_occurred = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("editor_panel")
         self.init_ui()
         self.setMinimumHeight(200)
 
-        # Debounce Timer for Saving (500ms)
         self.save_timer = QTimer()
         self.save_timer.setSingleShot(True)
         self.save_timer.timeout.connect(self._emit_change)
 
-        # Setup Shortcuts
         self.setup_shortcuts()
 
     def setup_shortcuts(self):
-        # Ctrl+Enter: Next Line
         self.sc_next = QShortcut(QKeySequence("Ctrl+Return"), self)
         self.sc_next.activated.connect(self.request_next.emit)
 
-        # Ctrl+Shift+Enter: Previous Line
         self.sc_prev = QShortcut(QKeySequence("Ctrl+Shift+Return"), self)
         self.sc_prev.activated.connect(self.request_prev.emit)
 
-        # Ctrl+Shift+< (Decrease Font)
-        self.sc_font_dec = QShortcut(
-            QKeySequence("Ctrl+Shift+,"), self
-        )  # Dalam banyak layout, < adalah Shift+,
+        self.sc_font_dec = QShortcut(QKeySequence("Ctrl+Shift+,"), self)
         self.sc_font_dec.activated.connect(self.decrease_font_size)
 
-        # Ctrl+Shift+> (Increase Font)
-        self.sc_font_inc = QShortcut(
-            QKeySequence("Ctrl+Shift+."), self
-        )  # Dalam banyak layout, > adalah Shift+.
+        self.sc_font_inc = QShortcut(QKeySequence("Ctrl+Shift+."), self)
         self.sc_font_inc.activated.connect(self.increase_font_size)
 
     def init_ui(self):
@@ -70,13 +57,11 @@ class EditorPanelComponent(QWidget):
         header_layout.setSpacing(8)
         header_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         self.info_label = QLabel("No file selected")
+        self.info_label.setObjectName("info_label")
         header_layout.addWidget(self.info_label, 1)
-
-        label_style = "background: transparent; border: none;"
 
         font_controls_label = QLabel("Font:")
         font_controls_label.setFont(Theme.FONT)
-        font_controls_label.setStyleSheet(label_style)
         font_controls = QHBoxLayout()
         font_controls.addWidget(font_controls_label)
         self.font_combo = QFontComboBox()
@@ -85,7 +70,6 @@ class EditorPanelComponent(QWidget):
 
         font_controls_size_label = QLabel("Size:")
         font_controls_size_label.setFont(Theme.FONT)
-        font_controls_size_label.setStyleSheet(label_style)
         font_controls.addWidget(font_controls_size_label)
         self.font_size_spin = QSpinBox()
         self.font_size_spin.setFont(Theme.FONT)
@@ -96,7 +80,6 @@ class EditorPanelComponent(QWidget):
         header_layout.addLayout(font_controls)
         layout.addLayout(header_layout)
 
-        # Editors Layout
         editor_layout = QHBoxLayout()
         editor_layout.setContentsMargins(8, 0, 8, 8)
         editor_layout.setSpacing(8)
@@ -129,6 +112,7 @@ class EditorPanelComponent(QWidget):
         btn_row.addStretch()
 
         copy_btn = QPushButton()
+        copy_btn.setObjectName("copy_btn")
         copy_btn.setIcon(QIcon(Theme.ICON_PATH + "content_copy.svg"))
         copy_btn.setFixedSize(24, 24)
         copy_btn.setToolTip(f"Copy {label} text")
@@ -198,12 +182,9 @@ class EditorPanelComponent(QWidget):
         self.font_size_spin.blockSignals(False)
 
     def _on_font_ui_changed(self):
-        # Update UI dulu
         family = self.font_combo.currentFont().family()
-        # Jika combo box menggunakan text aslinya lebih akurat
         if self.font_combo.currentText():
             family = self.font_combo.currentText()
-
         size = self.font_size_spin.value()
 
         font = self.orig_edit.font()
@@ -212,7 +193,6 @@ class EditorPanelComponent(QWidget):
         self.orig_edit.setFont(font)
         self.trans_edit.setFont(font)
 
-        # Notify parent to save to JSON
         self.font_changed.emit(family, size)
 
     def increase_font_size(self):
@@ -222,54 +202,7 @@ class EditorPanelComponent(QWidget):
         self.font_size_spin.setValue(self.font_size_spin.value() - 1)
 
     def apply_theme(self):
-        self.setStyleSheet(f"""
-                background-color: {Theme.BG_APP}; 
-                color: {Theme.TEXT_MAIN}; 
-                border-top: 1px solid {Theme.BORDER};
-        """)
-        self.info_label.setStyleSheet(f"""
-            color: {Theme.TEXT_MAIN}; 
-            font-weight: 500; 
-            background: transparent;
-            border: none;
-            """)
-
-        edit_style = f"""
-            QTextEdit {{
-                background-color: {Theme.BG_PANEL};
-                color: {Theme.TEXT_MAIN};
-                border: 1px solid {Theme.BORDER};
-                border-radius: 4px;
-            }}
-            QTextEdit:disabled {{
-                background-color: {Theme.BG_APP};
-                color: {Theme.TEXT_SECONDARY};
-            }}
-        """
-        self.orig_edit.setStyleSheet(edit_style)
-        self.trans_edit.setStyleSheet(edit_style)
-
-        copy_btn_style = f"""
-            QPushButton {{
-                background: transparent;
-                border: none;
-                padding: 2px;
-            }}
-            QPushButton:hover {{
-                background-color: {Theme.HOVER};
-                border-radius: 4px;
-            }}
-        """
         for container in [self.orig_container, self.trans_container]:
             btn = container.findChild(QPushButton)
             if btn:
-                btn.setStyleSheet(copy_btn_style)
                 btn.setIcon(QIcon(Theme.ICON_PATH + "content_copy.svg"))
-
-        # Scrollbars
-        self.orig_edit.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-        self.trans_edit.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-
-        # Style font controls
-        self.font_combo.setStyleSheet(Theme.COMBOBOX_STYLE)
-        self.font_size_spin.setStyleSheet(Theme.SPINBOX_STYLE)

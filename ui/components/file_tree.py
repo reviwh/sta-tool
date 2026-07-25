@@ -4,8 +4,6 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QTreeView,
     QAbstractItemView,
-    QProgressBar,
-    QLabel,
     QPushButton,
     QHBoxLayout,
 )
@@ -18,9 +16,11 @@ from ui.theme import Theme
 
 class FileTreeComponent(QWidget):
     file_selected = pyqtSignal(int)
+    filter_changed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("file_tree")
         self.setMinimumWidth(100)
         self.search_timer = QTimer()
         self.search_timer.setSingleShot(True)
@@ -83,23 +83,6 @@ class FileTreeComponent(QWidget):
         self.tree_view.setModel(self.model)
         layout.addWidget(self.tree_view)
 
-        # 3. Global Progress Bar
-        self.progress_label = QLabel("Total Progress:")
-        self.progress_label.setFont(Theme.FONT)
-
-        layout.addWidget(self.progress_label)
-
-        self.global_progress = QProgressBar()
-        self.global_progress.setFont(Theme.FONT)
-        self.global_progress.setStyleSheet(
-            """
-            QProgressBar { border: 1px solid %s; border-radius: 4px; text-align: center; height: 16px; font-size: 10px; }
-            QProgressBar::chunk { background-color: %s; }
-        """
-            % (Theme.BORDER, Theme.PRIMARY)
-        )
-        layout.addWidget(self.global_progress)
-
         self.tree_view.clicked.connect(self._handle_click)
         self.tree_view.expanded.connect(self._on_expanded)
         self.tree_view.collapsed.connect(self._on_collapsed)
@@ -115,25 +98,6 @@ class FileTreeComponent(QWidget):
         item = self.model.itemFromIndex(index)
         if item and item.data(Qt.ItemDataRole.UserRole) == -1:
             item.setIcon(Theme.get_icon("folder"))
-
-    def update_global_progress(self, all_content):
-        total_entries = 0
-        done_entries = 0
-
-        for file_data in all_content:
-            entries = file_data.get("entries", [])
-            total_entries += len(entries)
-
-            for e in entries:
-                trans_text = e.get("translated", "")
-                if len(trans_text.strip()) > 0:
-                    done_entries += 1
-
-        if total_entries > 0:
-            percentage = int((done_entries / total_entries) * 100)
-            self.global_progress.setValue(percentage)
-        else:
-            self.global_progress.setValue(0)
 
     def update_current_file_text(self, file_idx, entries):
         """Update text and background real-time."""
@@ -152,6 +116,18 @@ class FileTreeComponent(QWidget):
                 item.setBackground(QColor(Theme.PRIMARY_BG_COLOR))
             elif data_role is not None and data_role != -1:
                 item.setBackground(QColor(Theme.TRANSPARENT))
+
+    def get_search_text(self):
+        return self.search_input.text()
+
+    def is_warning_filter_active(self):
+        return self.warn_btn.isChecked()
+
+    def execute_filter(self):
+        self.filter_changed.emit()
+
+    def _on_search_changed(self):
+        self.search_timer.start(500)
 
     def _handle_click(self, index):
         item = self.model.itemFromIndex(index)
@@ -279,26 +255,7 @@ class FileTreeComponent(QWidget):
             self._restore_expanded_state(child, expanded_set, full_key)
 
     def apply_theme(self):
-        self.setStyleSheet(
-            f"""
-            QWidget {{
-                background-color: {Theme.BG_PANEL}; 
-                color: {Theme.TEXT_MAIN}; 
-                border-right: 1px solid {Theme.BORDER};
-            }}
-            {Theme.TOOLTIP_STYLE}
-            """
-        )
-
-        self.search_input.setStyleSheet(
-            f"""
-            background-color: {Theme.BG_PANEL}; 
-            color: {Theme.TEXT_MAIN}; 
-            border: 1px solid {Theme.BORDER}; 
-            border-radius: 4px; padding: 4px;"""
-        )
         search_icon = Theme.get_icon("search")
-        # Clear existing actions to avoid duplicates
         for action in self.search_input.actions():
             self.search_input.removeAction(action)
         self.search_input.addAction(
@@ -306,22 +263,7 @@ class FileTreeComponent(QWidget):
         )
 
         self.warn_btn.setIcon(Theme.get_icon("warning"))
-        self.warn_btn.setStyleSheet(Theme.BUTTON_WARNING_STYLE)
 
-        self.tree_view.setStyleSheet(Theme.TREEVIEW_STYLE)
-        self.tree_view.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-        self.tree_view.horizontalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
-
-        self.progress_label.setStyleSheet("background: transparent; border: none;")
-
-        self.global_progress.setStyleSheet(
-            f"""
-            QProgressBar {{ border: 1px solid {Theme.BORDER}; border-radius: 6px; text-align: center; height: 16px; font-size: 10px; color: {Theme.TEXT_MAIN}; background: {Theme.BG_APP}; }}
-            QProgressBar::chunk {{ background-color: {Theme.PRIMARY}; border-radius: 4px; }}
-        """
-        )
-
-        # Update existing icons in the tree
         def update_icons(index):
             for i in range(self.model.rowCount(index)):
                 child_idx = self.model.index(i, 0, index)
