@@ -5,11 +5,13 @@ note.txt
 Translation.json
 *temp
 string (2)
+plugins/
 
 # Virtual Environment
 venv/
 env/
 *venv/
+win-venv/
 
 # Python Cache
 */__pycache__
