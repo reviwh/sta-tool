@@ -106,7 +106,9 @@ class EditorPanelComponent(QWidget):
         self.orig_container = self._make_editor_container(self.orig_edit, "original")
 
         self.trans_edit = QTextEdit()
-        self.trans_container = self._make_editor_container(self.trans_edit, "translated")
+        self.trans_container = self._make_editor_container(
+            self.trans_edit, "translated"
+        )
 
         editor_layout.addWidget(self.orig_container)
         editor_layout.addWidget(self.trans_container)
@@ -220,21 +222,17 @@ class EditorPanelComponent(QWidget):
         self.font_size_spin.setValue(self.font_size_spin.value() - 1)
 
     def apply_theme(self):
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
                 background-color: {Theme.BG_APP}; 
                 color: {Theme.TEXT_MAIN}; 
                 border-top: 1px solid {Theme.BORDER};
-        """
-        )
-        self.info_label.setStyleSheet(
-            f"""
+        """)
+        self.info_label.setStyleSheet(f"""
             color: {Theme.TEXT_MAIN}; 
             font-weight: 500; 
             background: transparent;
             border: none;
-            """
-        )
+            """)
 
         edit_style = f"""
             QTextEdit {{
@@ -266,6 +264,7 @@ class EditorPanelComponent(QWidget):
             btn = container.findChild(QPushButton)
             if btn:
                 btn.setStyleSheet(copy_btn_style)
+                btn.setIcon(QIcon(Theme.ICON_PATH + "content_copy.svg"))
 
         # Scrollbars
         self.orig_edit.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)
