@@ -7,9 +7,11 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QFontComboBox,
     QSpinBox,
+    QPushButton,
+    QApplication,
 )
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer
-from PyQt6.QtGui import QShortcut, QKeySequence
+from PyQt6.QtGui import QShortcut, QKeySequence, QIcon
 
 from ui.theme import Theme
 
@@ -22,6 +24,7 @@ class EditorPanelComponent(QWidget):
     request_prev = pyqtSignal()
     # Signal saat font berubah di UI (untuk di-save ke config)
     font_changed = pyqtSignal(str, int)
+    copy_occurred = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -100,16 +103,47 @@ class EditorPanelComponent(QWidget):
 
         self.orig_edit = QTextEdit()
         self.orig_edit.setReadOnly(True)
+        self.orig_container = self._make_editor_container(self.orig_edit, "original")
 
         self.trans_edit = QTextEdit()
+        self.trans_container = self._make_editor_container(self.trans_edit, "translated")
 
-        editor_layout.addWidget(self.orig_edit)
-        editor_layout.addWidget(self.trans_edit)
+        editor_layout.addWidget(self.orig_container)
+        editor_layout.addWidget(self.trans_container)
         layout.addLayout(editor_layout, 2)
 
         self.trans_edit.textChanged.connect(self._on_text_changed)
 
         self.apply_theme()
+
+    def _make_editor_container(self, edit, label):
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+
+        btn_row = QHBoxLayout()
+        btn_row.setContentsMargins(0, 0, 0, 0)
+        btn_row.addStretch()
+
+        copy_btn = QPushButton()
+        copy_btn.setIcon(QIcon(Theme.ICON_PATH + "content_copy.svg"))
+        copy_btn.setFixedSize(24, 24)
+        copy_btn.setToolTip(f"Copy {label} text")
+        copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        copy_btn.clicked.connect(lambda: self._copy_text(edit))
+        btn_row.addWidget(copy_btn)
+
+        container_layout.addLayout(btn_row)
+        container_layout.addWidget(edit)
+
+        edit._copy_button = copy_btn
+        return container
+
+    def _copy_text(self, edit):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(edit.toPlainText())
+        self.copy_occurred.emit("Text copied to clipboard")
 
     def set_data(self, info_text, original_text, translated_text):
         self.trans_edit.blockSignals(True)
@@ -216,6 +250,22 @@ class EditorPanelComponent(QWidget):
         """
         self.orig_edit.setStyleSheet(edit_style)
         self.trans_edit.setStyleSheet(edit_style)
+
+        copy_btn_style = f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                padding: 2px;
+            }}
+            QPushButton:hover {{
+                background-color: {Theme.HOVER};
+                border-radius: 4px;
+            }}
+        """
+        for container in [self.orig_container, self.trans_container]:
+            btn = container.findChild(QPushButton)
+            if btn:
+                btn.setStyleSheet(copy_btn_style)
 
         # Scrollbars
         self.orig_edit.verticalScrollBar().setStyleSheet(Theme.SCROLLBAR_STYLE)

@@ -115,6 +115,7 @@ class StaTranslator(QMainWindow):
         self.editor_section.request_next.connect(self.go_to_next_string)
         self.editor_section.request_prev.connect(self.go_to_prev_string)
         self.editor_section.font_changed.connect(self.on_font_settings_changed)
+        self.editor_section.copy_occurred.connect(lambda msg: self.show_toast(msg))
         self.v_splitter.addWidget(self.editor_section)
 
         self.v_splitter.setStretchFactor(0, 2)
