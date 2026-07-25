@@ -1,4 +1,5 @@
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
+import csv
 import json
 import os
 import re
@@ -257,6 +258,65 @@ class ProjectManager(QObject):
                             )
                     except Exception as e:
                         pass
+
+    def export_csv(self, csv_path):
+        """Export all entries to CSV with headers: file, original_text, translation."""
+        try:
+            with open(csv_path, "w", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["file", "original_text", "translation"])
+                for item in self.data:
+                    file_path = item["file_path"]
+                    for entry in item["entries"]:
+                        writer.writerow([
+                            file_path,
+                            entry["original"],
+                            entry.get("translated", ""),
+                        ])
+            return True, "Success"
+        except Exception as e:
+            self.error_occurred.emit(f"CSV export failed: {e}")
+            return False, str(e)
+
+    def import_csv(self, csv_path):
+        """Import translations from CSV matching by file and original_text."""
+        try:
+            with open(csv_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                if reader.fieldnames is None:
+                    self.error_occurred.emit("CSV file is empty")
+                    return False, "Empty CSV"
+
+                required = {"file", "original_text", "translation"}
+                if not required.issubset(reader.fieldnames):
+                    msg = f"CSV missing required columns: {required - set(reader.fieldnames)}"
+                    self.error_occurred.emit(msg)
+                    return False, msg
+
+                # Build lookup: (file_path, original) -> list of (file_idx, entry_idx)
+                lookup = {}
+                for file_idx, item in enumerate(self.data):
+                    for entry_idx, entry in enumerate(item["entries"]):
+                        key = (item["file_path"], entry["original"])
+                        lookup.setdefault(key, []).append((file_idx, entry_idx))
+
+                count = 0
+                for row in reader:
+                    key = (row["file"], row["original_text"])
+                    matches = lookup.get(key)
+                    if matches:
+                        for file_idx, entry_idx in matches:
+                            self.data[file_idx]["entries"][entry_idx]["translated"] = row["translation"]
+                            count += 1
+
+            if count > 0:
+                self.is_dirty = True
+                self.data_changed.emit()
+                self.status_message.emit(f"Imported {count} translations from CSV")
+            return True, "Success"
+        except Exception as e:
+            self.error_occurred.emit(f"CSV import failed: {e}")
+            return False, str(e)
 
     def update_translation(self, file_idx, string_idx, text):
         if file_idx < 0 or string_idx < 0:

@@ -3,6 +3,7 @@
 # Temporary files
 note.txt
 Translation.json
+translation.csv
 *temp
 string (2)
 plugins/

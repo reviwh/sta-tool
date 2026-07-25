@@ -15,6 +15,8 @@ from ui.theme import Theme
 class ToolBarComponent(QWidget):
     remove_plugin_requested = pyqtSignal()
     theme_changed = pyqtSignal()
+    export_csv_requested = pyqtSignal()
+    import_csv_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -50,6 +52,12 @@ class ToolBarComponent(QWidget):
         self.btn_shortcuts = QPushButton(" Shortcuts")
         self.btn_shortcuts.setToolTip("Open shortcuts dialog")
 
+        self.btn_export_csv = QPushButton(" Export CSV")
+        self.btn_export_csv.setToolTip("Export all entries to CSV file")
+
+        self.btn_import_csv = QPushButton(" Import CSV")
+        self.btn_import_csv.setToolTip("Import translations from CSV file")
+
         # Theme Toggle Button
         self.btn_theme_toggle = QPushButton()
         self.btn_theme_toggle.setFont(Theme.FONT)
@@ -72,6 +80,16 @@ class ToolBarComponent(QWidget):
             btn.setFont(Theme.FONT)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             self.nav_layout.addWidget(btn)
+
+        self.btn_export_csv.setFont(Theme.FONT)
+        self.btn_export_csv.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_export_csv.clicked.connect(self.export_csv_requested.emit)
+        self.nav_layout.addWidget(self.btn_export_csv)
+
+        self.btn_import_csv.setFont(Theme.FONT)
+        self.btn_import_csv.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_import_csv.clicked.connect(self.import_csv_requested.emit)
+        self.nav_layout.addWidget(self.btn_import_csv)
 
         self.nav_layout.addStretch()
 
@@ -105,6 +123,8 @@ class ToolBarComponent(QWidget):
         self.btn_repack.setVisible(active)
         self.btn_apply_plugin.setVisible(active)
         self.btn_close_plugin.setVisible(active and has_plugin)
+        self.btn_export_csv.setVisible(active)
+        self.btn_import_csv.setVisible(active)
         self.btn_shortcuts.setVisible(True)
         self.apply_theme(has_plugin)
 
@@ -143,6 +163,12 @@ class ToolBarComponent(QWidget):
 
         self.btn_shortcuts.setIcon(Theme.get_icon("keyboard_command_key"))
         self.btn_shortcuts.setIconSize(icon_size)
+
+        self.btn_export_csv.setIcon(Theme.get_icon("csv_export"))
+        self.btn_export_csv.setIconSize(icon_size)
+
+        self.btn_import_csv.setIcon(Theme.get_icon("csv_import"))
+        self.btn_import_csv.setIconSize(icon_size)
 
         theme_icon = (
             "light_mode" if Theme.current_mode == Theme.MODE_DARK else "dark_mode"

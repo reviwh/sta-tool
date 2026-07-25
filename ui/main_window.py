@@ -168,6 +168,8 @@ class StaTranslator(QMainWindow):
         self.tool_bar.btn_repack.clicked.connect(self.handle_repack)
         self.tool_bar.remove_plugin_requested.connect(self.handle_remove_plugin)
         self.tool_bar.theme_changed.connect(self.handle_theme_changed)
+        self.tool_bar.export_csv_requested.connect(self.handle_export_csv)
+        self.tool_bar.import_csv_requested.connect(self.handle_import_csv)
         self.string_section.import_txt_requested.connect(self.handle_import_txt)
         self.string_section.replace_all_requested.connect(self.handle_replace_all)
 
@@ -511,6 +513,32 @@ class StaTranslator(QMainWindow):
             if success:
                 self.on_file_selected(self.current_file_idx)
                 self.show_toast("Import successful")
+
+    def handle_export_csv(self):
+        if not self.manager.is_active():
+            return
+        self.flush_save()
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export CSV", "", "CSV Files (*.csv)"
+        )
+        if path:
+            if not path.lower().endswith(".csv"):
+                path += ".csv"
+            success, msg = self.manager.export_csv(path)
+            if success:
+                self.show_toast("CSV export successful")
+
+    def handle_import_csv(self):
+        if not self.manager.is_active():
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Import CSV", "", "CSV Files (*.csv)"
+        )
+        if path:
+            success, msg = self.manager.import_csv(path)
+            if success:
+                self.refresh_ui_full()
+                self.show_toast("CSV import successful")
 
     def handle_replace_all(self):
         if self.current_file_idx == -1:
