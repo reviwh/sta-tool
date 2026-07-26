@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QApplication,
 )
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer
-from PyQt6.QtGui import QShortcut, QKeySequence, QIcon
+from PyQt6.QtGui import QShortcut, QKeySequence
 
 from ui.theme import Theme
 
@@ -113,7 +113,7 @@ class EditorPanelComponent(QWidget):
 
         copy_btn = QPushButton()
         copy_btn.setObjectName("copy_btn")
-        copy_btn.setIcon(QIcon(Theme.ICON_PATH + "content_copy.svg"))
+        copy_btn.setIcon(Theme.get_icon("content_copy"))
         copy_btn.setFixedSize(24, 24)
         copy_btn.setToolTip(f"Copy {label} text")
         copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -136,8 +136,8 @@ class EditorPanelComponent(QWidget):
         self.orig_edit.blockSignals(True)
 
         self.info_label.setText(info_text)
-        self.orig_edit.setPlainText(original_text)
-        self.trans_edit.setPlainText(translated_text or "")
+        self.orig_edit.setPlainText(original_text.replace("\\n", "\n"))
+        self.trans_edit.setPlainText((translated_text or "").replace("\\n", "\n"))
 
         self.trans_edit.blockSignals(False)
         self.orig_edit.blockSignals(False)
@@ -154,7 +154,7 @@ class EditorPanelComponent(QWidget):
         self.font_size_spin.setEnabled(enabled)
 
         if not enabled:
-            self.trans_edit.setPlaceholderText("Select a string to start editing...")
+            self.trans_edit.setPlaceholderText("Select a line to start editing...")
         else:
             self.trans_edit.setPlaceholderText("")
 
@@ -205,4 +205,4 @@ class EditorPanelComponent(QWidget):
         for container in [self.orig_container, self.trans_container]:
             btn = container.findChild(QPushButton)
             if btn:
-                btn.setIcon(QIcon(Theme.ICON_PATH + "content_copy.svg"))
+                btn.setIcon(Theme.get_icon("content_copy"))

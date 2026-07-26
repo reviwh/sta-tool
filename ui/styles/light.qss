@@ -121,7 +121,8 @@ QTreeView::branch:open:has-children:has-siblings {
 
 /* ProgressBar */
 QProgressBar {
-    border: 1px solid #E5E7EB;
+    border: none;
+    border-top: 1px solid #E5E7EB;
     border-radius: 0px;
     text-align: center;
     height: 16px;
@@ -417,6 +418,17 @@ QPushButton#toolbar_btn_primary::menu-indicator {
     image: none;
 }
 
+QPushButton#theme_btn {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #1F1F1F;
+}
+QPushButton#theme_btn:hover {
+    background-color: #E5E7EB;
+}
+
 QPushButton#menu_btn {
     background-color: transparent;
     color: #1F1F1F;
@@ -539,6 +551,17 @@ QLabel#section_label {
     font-weight: 500;
     font-size: 11pt;
     background-color: transparent;
+}
+
+/* Toast notification */
+QFrame#toast_container {
+    background-color: #eaeaea;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+QFrame#toast_container QLabel {
+    color: #1F1F1F;
+    background: transparent;
 }
 
 /* Side panels */

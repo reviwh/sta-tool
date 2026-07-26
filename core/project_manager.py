@@ -165,7 +165,7 @@ class ProjectManager(QObject):
         return change_count
 
     def _get_plugins(self):
-        settings = self.full_data.get("settings", self.full_data.get("setting", {}))
+        settings = self.full_data.get("settings", {})
         plugin_path = settings.get("plugin", {}).get("path")
         if plugin_path and os.path.exists(plugin_path):
             try:
@@ -352,7 +352,7 @@ class ProjectManager(QObject):
         self.full_data = {}
         self.path = None
         self.is_dirty = False
-        print("Project closed and data cleared.")
+        self.project_closed.emit()
 
     def autosave(self):
         if self.path and self.is_dirty:

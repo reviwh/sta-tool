@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox, QDialog
 from PyQt6.QtCore import QObject
 
 from core.project_manager import ProjectManager
+from ui.theme import Theme
 from ui.components.replace_dialog import ReplaceDialog
 from ui.components.shortcuts_dialog import ShortcutsDialog
 from ui.components.toast import ToastNotification
@@ -26,6 +27,7 @@ class AppController(QObject):
         # Model -> View
         m.project_loaded.connect(self._on_project_loaded)
         m.project_closed.connect(self._on_project_closed)
+        m.data_changed.connect(self._on_data_changed)
         m.dirty_changed.connect(self._update_ui_state)
         m.error_occurred.connect(lambda msg: QMessageBox.critical(v, "Error", msg))
         m.status_message.connect(v.status_bar.showMessage)
@@ -88,6 +90,9 @@ class AppController(QObject):
     def _on_project_closed(self):
         self._update_ui_state()
         self.view.status_bar.showMessage("Ready")
+
+    def _on_data_changed(self):
+        self._update_ui_state()
 
     def _on_close_requested(self, event):
         if not self._check_unsaved_changes():
@@ -196,11 +201,11 @@ class AppController(QObject):
             return
         if not self._check_unsaved_changes():
             return
-        src = QFileDialog.getExistingDirectory(self.view, "Select .sta Folder")
+        src = QFileDialog.getExistingDirectory(            self.view, "Select Folder with .sta Files")
         if not src:
             return
         dest, _ = QFileDialog.getSaveFileName(
-            self.view, "Save Project JSON", "", "*.json"
+            self.view, "Save Project as JSON", "", "*.json"
         )
         if dest:
             self.model.extract(src, dest)
@@ -214,7 +219,7 @@ class AppController(QObject):
         if not self._check_unsaved_changes():
             return
         path, _ = QFileDialog.getOpenFileName(
-            self.view, "Open Project JSON", "", "*.json"
+            self.view, "Open Project from JSON", "", "*.json"
         )
         if path:
             self.model.load(path)
@@ -235,7 +240,7 @@ class AppController(QObject):
             return
         self._flush_save()
         path, _ = QFileDialog.getSaveFileName(
-            self.view, "Save Project As", self.model.path, "*.json"
+            self.view, "Save Project as JSON", self.model.path, "*.json"
         )
         if path:
             if not path.lower().endswith(".json"):
@@ -269,7 +274,7 @@ class AppController(QObject):
         if not self.model.is_active():
             return
         self._flush_save()
-        out = QFileDialog.getExistingDirectory(self.view, "Select Output Folder")
+        out = QFileDialog.getExistingDirectory(self.view, "Select Output Folder for .sta Files")
         if out:
             self.model.repack(out)
 
@@ -277,7 +282,7 @@ class AppController(QObject):
         if not self.model.is_active():
             return
         path, _ = QFileDialog.getOpenFileName(
-            self.view, "Select Plugin JSON", "", "JSON Files (*.json)"
+            self.view, "Select Plugin File (JSON)", "", "JSON Files (*.json)"
         )
         if not path:
             return
@@ -288,7 +293,7 @@ class AppController(QObject):
         self.model.apply_plugin()
         self.model.save()
         self._refresh_ui(preserve_selection=True)
-        self._show_toast("Plugin applied!")
+        self._show_toast("Plugin has been applied")
 
     def _on_remove_plugin_requested(self):
         if not self.model.is_active():
@@ -307,50 +312,50 @@ class AppController(QObject):
             self.model.is_dirty = True
             self.model.save()
             self._refresh_ui()
-            self._show_toast("Plugin removed")
+            self._show_toast("Plugin has been removed")
 
     def _on_import_txt_requested(self):
         if self.current_file_idx == -1:
-            QMessageBox.warning(self.view, "Warning", "Please select a file first!")
+            QMessageBox.warning(self.view, "Warning", "Please select a file before proceeding!")
             return
         path, _ = QFileDialog.getOpenFileName(
-            self.view, "Import Translation from TXT", "", "Text Files (*.txt)"
+            self.view, "Import Translation from TXT File", "", "Text Files (*.txt)"
         )
         if path:
             success, msg = self.model.import_txt(self.current_file_idx, path)
             if success:
                 self._on_file_selected(self.current_file_idx)
-                self._show_toast("Import successful")
+                self._show_toast("Import completed successfully")
 
     def _on_export_csv_requested(self):
         if not self.model.is_active():
             return
         self._flush_save()
         path, _ = QFileDialog.getSaveFileName(
-            self.view, "Export CSV", "", "CSV Files (*.csv)"
+            self.view, "Export as CSV", "", "CSV Files (*.csv)"
         )
         if path:
             if not path.lower().endswith(".csv"):
                 path += ".csv"
             success, msg = self.model.export_csv(path)
             if success:
-                self._show_toast("CSV export successful")
+                self._show_toast("CSV export completed")
 
     def _on_import_csv_requested(self):
         if not self.model.is_active():
             return
         path, _ = QFileDialog.getOpenFileName(
-            self.view, "Import CSV", "", "CSV Files (*.csv)"
+            self.view, "Import from CSV", "", "CSV Files (*.csv)"
         )
         if path:
             success, msg = self.model.import_csv(path)
             if success:
                 self._refresh_ui()
-                self._show_toast("CSV import successful")
+                self._show_toast("CSV import completed")
 
     def _on_replace_all_requested(self):
         if self.current_file_idx == -1:
-            QMessageBox.warning(self.view, "Warning", "Please select a file first!")
+            QMessageBox.warning(self.view, "Warning", "Please select a file before proceeding!")
             return
         dialog = ReplaceDialog(self.view)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -364,7 +369,7 @@ class AppController(QObject):
             )
             if count > 0:
                 self._on_file_selected(self.current_file_idx)
-                self._show_toast(f"Replaced {count} occurrences")
+                self._show_toast(f"Replaced {count} occurrence{'s' if count != 1 else ''}")
             else:
                 self._show_toast("No matches found", duration=1000)
 
@@ -461,7 +466,6 @@ class AppController(QObject):
             v.apply_global_styles()
 
     def _on_theme_toggle_requested(self):
-        from ui.theme import Theme
         new_mode = (
             Theme.MODE_LIGHT
             if Theme.current_mode == Theme.MODE_DARK

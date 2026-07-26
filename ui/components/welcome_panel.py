@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import (
     QFrame,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QIcon, QFont
 from ui.theme import Theme
 
 
@@ -39,7 +38,7 @@ class WelcomePanel(QWidget):
         self.c_layout.addWidget(self.title)
 
         self.desc = QLabel(
-            "Extract strings from .sta game files or open an \nexisting project to start translating."
+            "Extract translatable strings from .sta game files \nor open an existing project to continue translating."
         )
         self.desc.setObjectName("welcome_desc")
         self.desc.setFont(Theme.FONT)
@@ -68,7 +67,7 @@ class WelcomePanel(QWidget):
 
         self.c_layout.addLayout(btn_layout)
 
-        self.side_footer = QLabel("Shortcut: Ctrl+N for New, Ctrl+O for Open")
+        self.side_footer = QLabel("New Project: Ctrl+N  |  Open Project: Ctrl+O")
         self.side_footer.setObjectName("welcome_footer")
         self.side_footer.setFont(Theme.FONT)
         self.side_footer.setAlignment(Qt.AlignmentFlag.AlignCenter)

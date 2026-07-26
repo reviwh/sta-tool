@@ -10,8 +10,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
 )
 from PyQt6.QtCore import pyqtSignal, Qt, QSize
-from PyQt6.QtGui import QFont, QIcon, QColor
-import os
+from PyQt6.QtGui import QFont, QColor, QKeySequence, QShortcut
 
 
 class StringListComponent(QWidget):
@@ -31,14 +30,14 @@ class StringListComponent(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self.path_label = QLabel("Select a file...")
+        self.path_label = QLabel("Select a file to translate...")
         self.path_label.setObjectName("path_label")
         self.path_label.setFont(Theme.FONT)
         self.path_label.setVisible(False)
 
         icon_size = QSize(16, 16)
 
-        self.btn_import_txt = QPushButton(" Import TXT")
+        self.btn_import_txt = QPushButton(" Import from TXT")
         self.btn_import_txt.setIcon(Theme.get_icon("txt_import"))
         self.btn_import_txt.setIconSize(icon_size)
         self.btn_import_txt.setToolTip(
@@ -50,6 +49,7 @@ class StringListComponent(QWidget):
         self.btn_replace_all = QPushButton(" Replace All")
         self.btn_replace_all.setIcon(Theme.get_icon("find_replace"))
         self.btn_replace_all.setIconSize(icon_size)
+        self.btn_replace_all.setShortcut(QKeySequence("Ctrl+H"))
         self.btn_replace_all.setToolTip(
             "Search and replace text across all entries (in current file)"
         )
@@ -150,7 +150,7 @@ class StringListComponent(QWidget):
         else:
             display_path = path
         self.path_label.setText(display_path)
-        is_placeholder = path == "Select a file..." or not path
+        is_placeholder = path == "Select a file to translate..." or not path
         self.path_label.setVisible(not is_placeholder)
 
     def apply_theme(self):

@@ -17,7 +17,6 @@ from ui.theme import Theme
 from ui.components.file_tree import FileTreeComponent
 from ui.components.string_list import StringListComponent
 from ui.components.editor_panel import EditorPanelComponent
-from ui.components.toast import ToastNotification
 from ui.components.welcome_panel import WelcomePanel
 from ui.components.menu_bar import MenuBarComponent
 
@@ -43,7 +42,6 @@ class StaTranslator(QMainWindow):
         self.setWindowIcon(QIcon(resource_path("assets/icon.svg")))
         self.resize(1024, 640)
 
-        self.toast = None
         self.close_handler = None
         self.font_family = "Noto Sans JP"
 
@@ -109,8 +107,6 @@ class StaTranslator(QMainWindow):
         self.global_progress.setVisible(False)
         layout.addWidget(self.global_progress)
 
-        self.string_section.request_focus_editor.connect(self.focus_translation_editor)
-
         self.status_bar = QStatusBar()
         self.status_bar.setFont(Theme.FONT)
         self.status_bar.setSizeGripEnabled(False)
@@ -127,24 +123,8 @@ class StaTranslator(QMainWindow):
         self.footer.setFont(Theme.FONT)
         self.status_bar.addPermanentWidget(self.footer)
 
-    def focus_translation_editor(self):
-        self.editor_section.trans_edit.setFocus()
-        cursor = self.editor_section.trans_edit.textCursor()
-        cursor.movePosition(cursor.MoveOperation.End)
-        self.editor_section.trans_edit.setTextCursor(cursor)
-
-    def setup_global_shortcuts(self):
-        pass
-
     def update_file_menu_state(self, is_active, has_plugin=False):
         self.menu_bar.update_file_menu_state(is_active, has_plugin=has_plugin)
-
-    def show_toast(self, message, duration=None):
-        if duration is None:
-            duration = Theme.TOAST_NORMAL
-        if not self.toast:
-            self.toast = ToastNotification(self)
-        self.toast.show_message(message, duration)
 
     def update_global_progress(self, all_content):
         total_entries = 0
@@ -191,18 +171,6 @@ class StaTranslator(QMainWindow):
             f"Switch to {'Light' if Theme.current_mode == Theme.MODE_DARK else 'Dark'} Mode"
         )
         btn.setFont(Theme.FONT)
-        btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: 1px solid transparent;
-                border-radius: 4px;
-                padding: 4px 8px;
-                color: """ + Theme.TEXT_MAIN + """;
-            }
-            QPushButton:hover {
-                background-color: """ + Theme.HOVER + """;
-            }
-        """)
 
         self.apply_global_styles()
 

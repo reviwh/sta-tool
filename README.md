@@ -1,16 +1,17 @@
 # STA Translator Tool
 
-Desktop application built with PyQt6 for extracting, translating, and repacking string data from `.sta` game files.
+Desktop application built with PyQt6 for extracting, translating, and repacking string data from `.sta` game files (proprietary big-endian binary format).
 
 ## Features
 
-- **Project Management** — Create, open, and manage translation projects with an integrated file tree
-- **Extract & Repack** — Extract translatable strings from `.sta` files and repack them with translations
+- **Extract & Repack** — Extract translatable strings from `.sta` files into a JSON project and repack them with translations
+- **Project Management** — Open, save, and manage translation projects with an integrated file tree
 - **CSV Import/Export** — Import and export translations via CSV for external editing
-- **Plugin System** — Extend support to different games via custom JSON plugin schemas
-- **Search & Replace** — Find and replace across all entries in a project
-- **Dark/Light Themes** — Toggle between dark and light mode
-- **Copy to Clipboard** — Copy original text with one click
+- **TXT Import** — Per-file text import with line-count validation
+- **Plugin System** — Replace hex-encoded characters with human-readable tags via custom JSON plugin schemas
+- **Search & Replace** — Find and replace across all entries in the current file
+- **Dark/Light Themes** — Toggle between dark and light mode (auto-detects system theme)
+- **Autosave** — Automatic backup every 5 minutes to a `.tmp` file
 
 ## Requirements
 

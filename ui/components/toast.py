@@ -3,11 +3,9 @@ from PyQt6.QtCore import (
     Qt,
     QTimer,
     QPropertyAnimation,
-    pyqtProperty,
     QEasingCurve,
     QPoint,
 )
-from PyQt6.QtGui import QFont
 from ui.theme import Theme
 
 
@@ -33,8 +31,6 @@ class ToastNotification(QWidget):
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.addWidget(self.container)
 
-        self._apply_theme_style()
-
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity_effect)
 
@@ -46,26 +42,12 @@ class ToastNotification(QWidget):
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.hide_toast)
 
-    def _apply_theme_style(self):
-        self.setStyleSheet(f"""
-            QFrame#toast_container {{
-                background-color: {Theme.BG_PANEL};
-                border: 1px solid {Theme.BORDER};
-                border-radius: 8px;
-            }}
-            QLabel {{
-                color: {Theme.TEXT_MAIN};
-                background: transparent;
-            }}
-        """)
-
     def show_message(self, message, duration=2000):
         try:
             self.opacity_anim.finished.disconnect(self.close)
-        except:
+        except TypeError:
             pass
 
-        self._apply_theme_style()
         self.label.setText(message)
         self.adjustSize()
 

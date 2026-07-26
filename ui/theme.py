@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QColor, QIcon, QFont
+from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtWidgets import QApplication
 import os
 from core.utils import resource_path
@@ -10,14 +10,8 @@ class Theme:
     current_mode = MODE_DARK
     _qss_cache = ""
 
-    # Common Colors (Brand)
-    PRIMARY = "#3982F7"
-    SUCCESS = "#00C853"
     WARNING = "#E7A917"
-    WHITE = "#E5E7EB"
-    BLACK = "#1F1F1F"
 
-    # Dynamic Colors (initialized to Dark Mode)
     BG_APP = "#212121"
     BG_PANEL = "#181818"
     BG_CONTAINER = "#2e2e32"
@@ -26,8 +20,6 @@ class Theme:
     TEXT_SECONDARY = "#9CA3AF"
     BORDER = "#2f2f2f"
     SECONDARY_BG_COLOR = "#3a3a3a"
-    PRIMARY_HOVER = "#5094ff"
-    WARNING_HOVER = "#e8b425"
 
     PRIMARY_BG_COLOR = "#803982F7"
     SUCCESS_BG_COLOR = "#8000C853"
@@ -35,23 +27,12 @@ class Theme:
     TRANSPARENT = "#00000000"
 
     FONT_SIZE = 10
-    FONT_SIZE_SMALL = 8
-    FONT_SIZE_LARGE = 12
-    MARGIN = 8
-    PADDING = 4
     SPACING = 8
 
     ICON_PATH = resource_path("assets/icons/white/")
     PRIMARY_ICON_PATH = resource_path("assets/icons/white/")
-    TOAST_SHORT = 1000
-    TOAST_NORMAL = 3000
 
     FONT = QFont("Noto Sans JP", 10)
-    FONT_BOLD = QFont("Noto Sans JP", 10, QFont.Weight.Bold)
-    FONT_ITALIC = QFont("Noto Sans JP", 10, italic=True)
-    HEADER_FONT = QFont("Noto Sans JP", 24, QFont.Weight.Medium)
-    HEADER_COLOR = PRIMARY
-    LABEL_FONT = QFont("Noto Sans JP", 12, QFont.Weight.Bold)
     MONO_FONT = QFont("JetBrains Mono", 10)
 
     @classmethod
@@ -118,10 +99,6 @@ class Theme:
             return cls.MODE_DARK
 
     @classmethod
-    def refresh_styles(cls):
-        cls._load_qss()
-
-    @classmethod
     def get_icon(cls, icon_name):
         path = os.path.join(cls.ICON_PATH, icon_name + ".svg")
         return QIcon() if not os.path.exists(path) else QIcon(path)
@@ -130,9 +107,3 @@ class Theme:
     def get_primary_icon(cls, icon_name):
         path = os.path.join(cls.PRIMARY_ICON_PATH, icon_name + ".svg")
         return QIcon() if not os.path.exists(path) else QIcon(path)
-
-    @staticmethod
-    def _create_color(hex_str, alpha):
-        c = QColor(hex_str)
-        c.setAlpha(alpha)
-        return c

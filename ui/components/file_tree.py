@@ -7,10 +7,9 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QHBoxLayout,
 )
-from PyQt6.QtGui import QStandardItemModel, QStandardItem, QIcon, QFont, QAction, QColor
+from PyQt6.QtGui import QStandardItemModel, QStandardItem, QIcon, QFont, QColor, QKeySequence, QShortcut
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QModelIndex, QSize
 from pathlib import Path
-import os
 from ui.theme import Theme
 
 
@@ -37,7 +36,7 @@ class FileTreeComponent(QWidget):
         search_layout.setSpacing(Theme.SPACING)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Filter files...")
+        self.search_input.setPlaceholderText("Search for files...")
         self.search_input.setFont(Theme.FONT)
         self.search_input.textChanged.connect(self._on_search_changed)
 
@@ -48,12 +47,15 @@ class FileTreeComponent(QWidget):
 
         search_layout.addWidget(self.search_input)
 
+        shortcut_focus_filter = QShortcut(QKeySequence("F3"), self)
+        shortcut_focus_filter.activated.connect(self.search_input.setFocus)
+
         self.warn_btn = QPushButton()
         self.warn_btn.setIcon(Theme.get_icon("warning"))
         self.warn_btn.setIconSize(QSize(20, 20))
         self.warn_btn.setFixedSize(28, 28)
         self.warn_btn.setCheckable(True)
-        self.warn_btn.setToolTip("Show files with empty translations (warnings)")
+        self.warn_btn.setToolTip("Show files with untranslated strings")
         self.warn_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.warn_btn.clicked.connect(self.execute_filter)
         self.warn_btn.setStyleSheet(
@@ -84,6 +86,7 @@ class FileTreeComponent(QWidget):
         layout.addWidget(self.tree_view)
 
         self.tree_view.clicked.connect(self._handle_click)
+        self.tree_view.activated.connect(self._handle_click)
         self.tree_view.expanded.connect(self._on_expanded)
         self.tree_view.collapsed.connect(self._on_collapsed)
 
@@ -213,21 +216,6 @@ class FileTreeComponent(QWidget):
         for item in items:
             node.appendRow(item)
             self._sort_node(item)
-
-    def _on_search_changed(self):
-        self.search_timer.start(500)
-
-    def execute_filter(self):
-        # Notify MainWindow via window() access
-        parent = self.window()
-        if parent and hasattr(parent, "on_filter_changed"):
-            parent.on_filter_changed()
-
-    def get_search_text(self):
-        return self.search_input.text()
-
-    def is_warning_filter_active(self):
-        return self.warn_btn.isChecked()
 
     def _save_expanded_state(self, index, expanded_set, current_path=""):
         for i in range(self.model.rowCount(index)):

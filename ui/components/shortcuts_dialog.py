@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QFont, QKeySequence, QIcon
+from PyQt6.QtGui import QFont
 from ui.theme import Theme
 
 
@@ -18,12 +18,11 @@ class ShortcutsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("shortcuts_dialog")
-        self.setWindowTitle("Application Shortcuts")
+        self.setWindowTitle("Keyboard Shortcuts")
         self.setFixedWidth(600)
         self.setMinimumHeight(400)
 
         self.init_ui()
-        self.apply_theme()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -46,13 +45,14 @@ class ShortcutsDialog(QDialog):
             ("Ctrl+S", "Save Project"),
             ("Ctrl+Shift+S", "Save Project As..."),
             ("Ctrl+W", "Close Project"),
-            ("Ctrl+I", "Import CSV"),
-            ("Ctrl+E", "Export CSV"),
+            ("Ctrl+I", "Import from CSV"),
+            ("Ctrl+E", "Export as CSV"),
             ("F5", "Repack to .sta"),
-            ("Ctrl+Shift+F", "Replace All"),
+            ("Ctrl+H", "Replace All"),
             ("Ctrl+P", "Apply Plugin"),
-            ("Ctrl+Shift+R", "Remove Plugin"),
-            ("Ctrl+H", "Toggle Help / Shortcuts"),
+            ("Ctrl+Shift+P", "Remove Plugin"),
+            ("F1", "Toggle Keyboard Shortcuts"),
+            ("F3", "Focus Filter Field"),
         ])
 
         self._add_shortcuts_section(content_layout, "Editor & Navigation", [
@@ -81,9 +81,6 @@ class ShortcutsDialog(QDialog):
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         layout.addWidget(container)
-
-    def apply_theme(self):
-        pass
 
     def _add_shortcuts_section(self, parent_layout, title, shortcuts):
         lbl = QLabel(title)

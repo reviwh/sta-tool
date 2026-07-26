@@ -56,16 +56,24 @@ def extract_folder_to_json(input_folder, output_json):
                 f.seek(16)
                 entries = []
 
+                MAX_LINES = 1_000_000
+                if total_lines > MAX_LINES:
+                    print(f"SKIP: {file_path} (too many lines: {total_lines})")
+                    continue
+
                 for _ in range(total_lines):
                     len_data = f.read(4)
                     if len(len_data) < 4:
                         break
 
                     length = struct.unpack(">I", len_data)[0]
+                    if length > 100_000:
+                        print(f"SKIP: {file_path} (string too long: {length} bytes)")
+                        break
+
                     raw_content = f.read(length)
 
-                    # Decode dan escape newline agar aman di editor
-                    content = raw_content.decode("utf-8").replace("\n", "\\n")
+                    content = raw_content.decode("utf-8", errors="replace").replace("\n", "\\n")
                     entries.append({"original": content, "translated": ""})
 
                 extracted_content.append(

@@ -1,4 +1,3 @@
-import os
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -12,7 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont
 from ui.theme import Theme
 
 
@@ -24,7 +23,6 @@ class ReplaceDialog(QDialog):
         self.setFixedWidth(350)
 
         self.init_ui()
-        self.apply_theme()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -34,7 +32,7 @@ class ReplaceDialog(QDialog):
         top_layout.setContentsMargins(8, 8, 8, 8)
         top_layout.setSpacing(4)
 
-        self.find_label = QLabel("Find word:")
+        self.find_label = QLabel("Find:")
         self.find_label.setFont(Theme.FONT)
         top_layout.addWidget(self.find_label)
         self.find_edit = QLineEdit()
@@ -54,9 +52,9 @@ class ReplaceDialog(QDialog):
         source_layout.setContentsMargins(0, 0, 0, 0)
         source_layout.setSpacing(8)
 
-        macth_label = QLabel("Match against:")
-        macth_label.setFont(Theme.FONT)
-        source_layout.addWidget(macth_label)
+        match_label = QLabel("Match against:")
+        match_label.setFont(Theme.FONT)
+        source_layout.addWidget(match_label)
         source_layout.addStretch()
 
         self.radio_original = QRadioButton("Original")
@@ -76,7 +74,7 @@ class ReplaceDialog(QDialog):
         top_layout.addLayout(source_layout)
         top_layout.addSpacing(4)
 
-        self.case_check = QCheckBox("Case Sensitive")
+        self.case_check = QCheckBox("Case-sensitive")
         self.case_check.setFont(Theme.FONT)
         self.case_check.setCursor(Qt.CursorShape.PointingHandCursor)
         top_layout.addWidget(self.case_check)
@@ -96,7 +94,7 @@ class ReplaceDialog(QDialog):
         self.btn_replace.setFont(Theme.FONT)
         self.btn_replace.setIcon(Theme.get_primary_icon("find_replace"))
         self.btn_replace.setIconSize(icon_size)
-        self.btn_replace.setToolTip("Execute replacement logic")
+        self.btn_replace.setToolTip("Find and replace in all entries")
         self.btn_replace.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_replace.setDefault(True)
         self.btn_replace.clicked.connect(self.accept)
@@ -123,5 +121,4 @@ class ReplaceDialog(QDialog):
             "source": "original" if self.radio_original.isChecked() else "translated",
         }
 
-    def apply_theme(self):
-        pass
+
