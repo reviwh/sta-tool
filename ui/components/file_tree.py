@@ -11,9 +11,10 @@ from PyQt6.QtGui import QStandardItemModel, QStandardItem, QIcon, QFont, QColor,
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QModelIndex, QSize
 from pathlib import Path
 from ui.theme import Theme
+from ui.components.clear_button import ClearButtonMixin
 
 
-class FileTreeComponent(QWidget):
+class FileTreeComponent(ClearButtonMixin, QWidget):
     file_selected = pyqtSignal(int)
     filter_changed = pyqtSignal()
 
@@ -44,6 +45,7 @@ class FileTreeComponent(QWidget):
         self.search_input.addAction(
             search_icon, QLineEdit.ActionPosition.LeadingPosition
         )
+        self._add_clear_button(self.search_input)
 
         search_layout.addWidget(self.search_input)
 
@@ -249,6 +251,9 @@ class FileTreeComponent(QWidget):
         self.search_input.addAction(
             search_icon, QLineEdit.ActionPosition.LeadingPosition
         )
+
+        for _, btn in getattr(self, "_clear_buttons", []):
+            btn.setIcon(Theme.get_icon("close"))
 
         self.warn_btn.setIcon(Theme.get_icon("warning"))
 

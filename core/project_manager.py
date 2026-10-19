@@ -150,9 +150,13 @@ class ProjectManager(QObject):
 
         for entry in entries:
             source_text = entry.get(source_key, "")
-            target_text = entry.get("translated", "")
 
-            if pattern.search(source_text):
+            if source_key == "original":
+                if pattern.search(source_text):
+                    entry["translated"] = replace_str
+                    change_count += 1
+            else:
+                target_text = entry.get("translated", "")
                 new_text, n = pattern.subn(replace_str, target_text)
                 if n > 0:
                     entry["translated"] = new_text
