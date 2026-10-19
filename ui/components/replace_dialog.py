@@ -13,16 +13,18 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont
 from ui.theme import Theme
+from ui.components.clear_button import ClearButtonMixin
 
 
-class ReplaceDialog(QDialog):
-    def __init__(self, parent=None):
+class ReplaceDialog(ClearButtonMixin, QDialog):
+    def __init__(self, parent=None, state=None):
         super().__init__(parent)
         self.setObjectName("replace_dialog")
         self.setWindowTitle("Replace All")
         self.setFixedWidth(350)
 
         self.init_ui()
+        self._restore_state(state)
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -37,6 +39,7 @@ class ReplaceDialog(QDialog):
         top_layout.addWidget(self.find_label)
         self.find_edit = QLineEdit()
         self.find_edit.setFont(Theme.FONT)
+        self._add_clear_button(self.find_edit)
         top_layout.addWidget(self.find_edit)
         top_layout.addSpacing(4)
 
@@ -45,6 +48,7 @@ class ReplaceDialog(QDialog):
         top_layout.addWidget(self.replace_label)
         self.replace_edit = QLineEdit()
         self.replace_edit.setFont(Theme.FONT)
+        self._add_clear_button(self.replace_edit)
         top_layout.addWidget(self.replace_edit)
         top_layout.addSpacing(4)
 
@@ -112,6 +116,17 @@ class ReplaceDialog(QDialog):
         btn_layout.addWidget(self.btn_cancel)
         btn_layout.addWidget(self.btn_replace)
         layout.addWidget(container)
+
+    def _restore_state(self, state):
+        if not state:
+            return
+        self.find_edit.setText(state.get("find", ""))
+        self.replace_edit.setText(state.get("replace", ""))
+        self.case_check.setChecked(state.get("case_sensitive", False))
+        if state.get("source") == "original":
+            self.radio_original.setChecked(True)
+        else:
+            self.radio_translated.setChecked(True)
 
     def get_data(self):
         return {

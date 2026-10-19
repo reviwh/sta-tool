@@ -18,6 +18,7 @@ class AppController(QObject):
         self.current_file_idx = -1
         self.current_string_idx = -1
         self._toast = None
+        self._replace_state = None
         self._connect_signals()
 
     def _connect_signals(self):
@@ -357,9 +358,10 @@ class AppController(QObject):
         if self.current_file_idx == -1:
             QMessageBox.warning(self.view, "Warning", "Please select a file before proceeding!")
             return
-        dialog = ReplaceDialog(self.view)
+        dialog = ReplaceDialog(self.view, state=self._replace_state)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_data()
+            self._replace_state = data
             count = self.model.replace_all(
                 self.current_file_idx,
                 data["find"],
