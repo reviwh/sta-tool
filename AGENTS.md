@@ -35,9 +35,10 @@ All file I/O runs on the main thread (no `QThread` usage despite skill recommend
 main.py — QApplication init, wires Model → View → Controller
   ├── core/project_manager.py  — QObject with signals; lifecycle owner
   │     (load, save, extract, repack, autosave, CSV/TXT import/export,
-  │      replace-all, plugin apply/reverse)
+  │      replace-all, plugin apply/reverse, undo/redo history)
   │     ├── core/extractor.py  — folder → project JSON
-  │     └── core/repacker.py   — project JSON → .sta folder
+  │     ├── core/repacker.py   — project JSON → .sta folder
+  │     └── core/undo_stack.py — EditCommand + UndoStack (history)
   ├── ui/main_window.py:StaTranslator — QMainWindow, widget composition
   │   ├── ui/components/file_tree.py
   │   ├── ui/components/string_list.py
@@ -60,6 +61,17 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **Window title**: `STA Translator Tool - Folder/Name *` (asterisk when dirty)
 - **Progress bar**: shows % of entries with non-whitespace translations
 - **Copyright footer**: `© 2024 Revi Wardana Putra.`
+
+## Undo / Redo
+
+- `Ctrl+Z` undo, `Ctrl+Y` redo (also in the `&Edit` menu)
+- **In the translation field** the text edit keeps its own history: `Ctrl+Z` / `Ctrl+Shift+Z` undo/redo the typed text while the field has focus
+- **Everywhere else** the app history (`core/undo_stack.py`) takes over:
+  - Editing a translation records one command per entry (all typing of that entry merges into a single command)
+  - Undo of a translation restores the previous value **and moves the selection/focus back to that entry**
+  - Replace All / TXT import / CSV import are recorded as one bulk command → undo reverts all of it, redo re-applies it
+- The editor consumes `Ctrl+Z` / `Ctrl+Y` in `eventFilter` — a plain `QShortcut` never reaches the action because `QTextEdit` handles those keys itself
+- History is cleared on project load/close; a new edit clears the redo stack
 
 ## Plugins
 

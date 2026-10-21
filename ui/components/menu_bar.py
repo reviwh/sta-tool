@@ -62,6 +62,18 @@ class MenuBarComponent(QObject):
         )
         file_menu.addAction(self.action_export_csv)
 
+        edit_menu = menu_bar.addMenu("&Edit")
+
+        self.action_undo = QAction("&Undo", view)
+        self.action_undo.setShortcut(QKeySequence("Ctrl+Z"))
+        self.action_undo.triggered.connect(self._view.undo_requested)
+        edit_menu.addAction(self.action_undo)
+
+        self.action_redo = QAction("&Redo", view)
+        self.action_redo.setShortcut(QKeySequence("Ctrl+Y"))
+        self.action_redo.triggered.connect(self._view.redo_requested)
+        edit_menu.addAction(self.action_redo)
+
         plugin_menu = menu_bar.addMenu("&Plugin")
 
         self.action_apply_plugin = QAction("&Apply Plugin...", view)
@@ -94,6 +106,7 @@ class MenuBarComponent(QObject):
         menu_bar.setCornerWidget(self.menu_theme_btn, Qt.Corner.TopRightCorner)
 
         self.update_file_menu_state(False)
+        self.set_history_state(False, False)
 
     def update_file_menu_state(self, is_active, has_plugin=False):
         self.action_new.setEnabled(not is_active)
@@ -106,3 +119,7 @@ class MenuBarComponent(QObject):
         self.action_export_csv.setEnabled(is_active)
         self.action_apply_plugin.setEnabled(is_active)
         self.action_remove_plugin.setEnabled(is_active and has_plugin)
+
+    def set_history_state(self, can_undo, can_redo):
+        self.action_undo.setEnabled(can_undo)
+        self.action_redo.setEnabled(can_redo)

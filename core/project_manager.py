@@ -5,6 +5,7 @@ import os
 import re
 from core.extractor import extract_folder_to_json
 from core.repacker import repack_from_json
+from core.undo_stack import EditCommand, UndoStack
 
 
 class ProjectManager(QObject):
@@ -14,12 +15,15 @@ class ProjectManager(QObject):
     dirty_changed = pyqtSignal()
     error_occurred = pyqtSignal(str)
     status_message = pyqtSignal(str)
+    history_changed = pyqtSignal()
 
     def __init__(self):
         super().__init__()
         self.full_data = {}
         self.path = None
         self.is_dirty = False
+        self.undo_stack = UndoStack()
+        self._edit_session = None
         self.autosave_timer = QTimer(self)
         self.autosave_timer.timeout.connect(self.autosave)
 
@@ -73,6 +77,7 @@ class ProjectManager(QObject):
                 self.full_data = data
                 self.path = path
                 self.is_dirty = False
+                self._clear_history()
                 self.apply_plugin()  # Auto-apply plugin on load
                 self.autosave_timer.start(300000)  # 5 minutes
                 self.project_loaded.emit(path)
@@ -116,7 +121,7 @@ class ProjectManager(QObject):
             self.error_occurred.emit(f"Repack failed: {e}")
             return False, str(e)
 
-    def import_txt(self, file_idx, txt_path):
+    def import_txt(self, file_idx, txt_path, focus_idx=None):
         """Import translation from TXT file for a specific file index."""
         try:
             with open(txt_path, "r", encoding="utf-8") as f:
@@ -128,8 +133,21 @@ class ProjectManager(QObject):
                 self.error_occurred.emit(msg)
                 return False, msg
 
+            changes = []
             for i, line in enumerate(lines):
-                entries[i]["translated"] = line
+                old = entries[i].get("translated", "")
+                if old != line:
+                    entries[i]["translated"] = line
+                    changes.append((file_idx, i, old, line))
+
+            if changes:
+                self._push_command(
+                    EditCommand(
+                        changes,
+                        focus=self._focus_target(file_idx, focus_idx),
+                        label="Import from TXT",
+                    )
+                )
 
             self.is_dirty = True
             self.data_changed.emit()
@@ -138,7 +156,15 @@ class ProjectManager(QObject):
             self.error_occurred.emit(f"Import failed: {e}")
             return False, str(e)
 
-    def replace_all(self, file_idx, find_str, replace_str, case_sensitive, source_key):
+    def replace_all(
+        self,
+        file_idx,
+        find_str,
+        replace_str,
+        case_sensitive,
+        source_key,
+        focus_idx=None,
+    ):
         """Find and replace all occurrences in a file's entries.
 
         Entries are selected by matching ``find_str`` against ``source_key``:
@@ -163,32 +189,48 @@ class ProjectManager(QObject):
         entries = self.data[file_idx]["entries"]
         replaced_count = 0
         matched_count = 0
+        changes = []
         flags = 0 if case_sensitive else re.IGNORECASE
         pattern = re.compile(re.escape(find_str), flags)
         replacement = replace_str.replace("\\", "\\\\")
 
-        for entry in entries:
+        for entry_idx, entry in enumerate(entries):
             source_text = entry.get(source_key, "")
             if not pattern.search(source_text):
                 continue
 
             matched_count += 1
-            target_text = entry.get("translated", "")
+            old_translated = entry.get("translated", "")
+            target_text = old_translated
 
             if not target_text.strip():
                 if source_key == "original":
-                    entry["translated"] = pattern.sub(replacement, source_text)
+                    new_text = pattern.sub(replacement, source_text)
+                    entry["translated"] = new_text
                     replaced_count += 1
+                    if new_text != old_translated:
+                        changes.append((file_idx, entry_idx, old_translated, new_text))
                 continue
 
             new_text, n = pattern.subn(replacement, target_text)
             if n > 0:
                 entry["translated"] = new_text
                 replaced_count += n
+                if new_text != old_translated:
+                    changes.append((file_idx, entry_idx, old_translated, new_text))
 
         if replaced_count > 0:
             self.is_dirty = True
             self.data_changed.emit()
+
+        if changes:
+            self._push_command(
+                EditCommand(
+                    changes,
+                    focus=self._focus_target(file_idx, focus_idx),
+                    label="Replace All",
+                )
+            )
 
         return replaced_count, matched_count
 
@@ -329,13 +371,22 @@ class ProjectManager(QObject):
                         lookup.setdefault(key, []).append((file_idx, entry_idx))
 
                 count = 0
+                changes = []
                 for row in reader:
                     key = (row["file"], row["original_text"])
                     matches = lookup.get(key)
                     if matches:
                         for file_idx, entry_idx in matches:
-                            self.data[file_idx]["entries"][entry_idx]["translated"] = row["translation"]
+                            entry = self.data[file_idx]["entries"][entry_idx]
+                            old = entry.get("translated", "")
+                            new = row["translation"]
+                            if old != new:
+                                entry["translated"] = new
+                                changes.append((file_idx, entry_idx, old, new))
                             count += 1
+
+            if changes:
+                self._push_command(EditCommand(changes, label="Import from CSV"))
 
             if count > 0:
                 self.is_dirty = True
@@ -350,11 +401,92 @@ class ProjectManager(QObject):
         if file_idx < 0 or string_idx < 0:
             return
 
-        if self.data:
-            self.data[file_idx]["entries"][string_idx]["translated"] = text
-            if not self.is_dirty:
-                self.is_dirty = True
-                self.dirty_changed.emit()
+        if not self.data or file_idx >= len(self.data):
+            return
+
+        entry = self.data[file_idx]["entries"][string_idx]
+        old = entry.get("translated", "")
+        if old == text:
+            return
+
+        entry["translated"] = text
+        self._record_cell_change(file_idx, string_idx, old, text)
+        if not self.is_dirty:
+            self.is_dirty = True
+            self.dirty_changed.emit()
+
+    # --- Undo / redo history -------------------------------------------------
+
+    @staticmethod
+    def _focus_target(file_idx, focus_idx):
+        """Build the focus tuple used to restore the editor after a history step."""
+        if focus_idx is None or focus_idx < 0:
+            return None
+        return (file_idx, focus_idx)
+
+    def end_edit_session(self):
+        """Close the running edit session so the next edit starts a new command."""
+        self._edit_session = None
+
+    def _clear_history(self):
+        self.undo_stack.clear()
+        self._edit_session = None
+        self.history_changed.emit()
+
+    def _push_command(self, command):
+        """Store a multi-cell command on the undo stack."""
+        self._edit_session = None
+        self.undo_stack.push(command)
+        self.history_changed.emit()
+
+    def _record_cell_change(self, file_idx, string_idx, old, new):
+        """Record a single cell edit, merging it into the running session."""
+        session = self._edit_session
+        if session is not None and session[0] == file_idx and session[1] == string_idx:
+            command = session[2]
+            command.update_value(new)
+            if command.is_noop():
+                self.undo_stack.drop_current()
+                self._edit_session = None
+            self.history_changed.emit()
+            return
+
+        command = EditCommand(
+            [(file_idx, string_idx, old, new)],
+            focus=(file_idx, string_idx),
+            label="Edit translation",
+        )
+        self.undo_stack.push(command)
+        self._edit_session = (file_idx, string_idx, command)
+        self.history_changed.emit()
+
+    def undo(self):
+        """Revert the last change and return the applied command."""
+        command = self.undo_stack.undo()
+        if command is None:
+            return None
+
+        self._edit_session = None
+        command.apply(self.data, use_new=False)
+        self.is_dirty = True
+        self.dirty_changed.emit()
+        self.data_changed.emit()
+        self.history_changed.emit()
+        return command
+
+    def redo(self):
+        """Re-apply the last undone change and return the applied command."""
+        command = self.undo_stack.redo()
+        if command is None:
+            return None
+
+        self._edit_session = None
+        command.apply(self.data, use_new=True)
+        self.is_dirty = True
+        self.dirty_changed.emit()
+        self.data_changed.emit()
+        self.history_changed.emit()
+        return command
 
     def save(self, path=None):
         save_path = path if path else self.path
@@ -380,6 +512,7 @@ class ProjectManager(QObject):
         self.full_data = {}
         self.path = None
         self.is_dirty = False
+        self._clear_history()
         self.project_closed.emit()
 
     def autosave(self):

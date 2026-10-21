@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QApplication,
 )
-from PyQt6.QtCore import pyqtSignal, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QEvent
 from PyQt6.QtGui import QShortcut, QKeySequence
 
 from ui.theme import Theme
@@ -21,6 +21,9 @@ class EditorPanelComponent(QWidget):
     request_prev = pyqtSignal()
     font_changed = pyqtSignal(str, int)
     copy_occurred = pyqtSignal(str)
+    undo_requested = pyqtSignal()
+    redo_requested = pyqtSignal()
+    undo_state_changed = pyqtSignal(bool, bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -98,6 +101,8 @@ class EditorPanelComponent(QWidget):
         layout.addLayout(editor_layout, 2)
 
         self.trans_edit.textChanged.connect(self._on_text_changed)
+        self.trans_edit.installEventFilter(self)
+        self.orig_edit.installEventFilter(self)
 
         self.apply_theme()
 
@@ -131,6 +136,56 @@ class EditorPanelComponent(QWidget):
         clipboard.setText(edit.toPlainText())
         self.copy_occurred.emit("Text copied to clipboard")
 
+    def eventFilter(self, obj, event):
+        """Route undo/redo keys to the application history.
+
+        The text edit handles Ctrl+Z on its own, so the key press is consumed
+        here and forwarded to the controller which decides between the local
+        (in text field) undo and the application wide history.
+        """
+        if (
+            obj in (self.trans_edit, self.orig_edit)
+            and event.type() == QEvent.Type.KeyPress
+        ):
+            key = event.key()
+            modifiers = event.modifiers()
+            ctrl = modifiers & Qt.KeyboardModifier.ControlModifier
+            shift = modifiers & Qt.KeyboardModifier.ShiftModifier
+
+            if ctrl and key == Qt.Key.Key_Z and not shift:
+                self.undo_requested.emit()
+                return True
+
+            if ctrl and key == Qt.Key.Key_Y:
+                self.redo_requested.emit()
+                return True
+
+            if ctrl and shift and key == Qt.Key.Key_Z and not self.has_local_redo():
+                self.redo_requested.emit()
+                return True
+
+        return super().eventFilter(obj, event)
+
+    def has_local_focus(self):
+        """True when the translation text field owns the keyboard focus."""
+        return self.trans_edit.hasFocus()
+
+    def has_local_undo(self):
+        """True when the text field still holds undoable steps."""
+        return self.trans_edit.document().isUndoAvailable()
+
+    def has_local_redo(self):
+        """True when the text field still holds redoable steps."""
+        return self.trans_edit.document().isRedoAvailable()
+
+    def undo_local(self):
+        """Undo the last step typed inside the text field."""
+        self.trans_edit.undo()
+
+    def redo_local(self):
+        """Redo the last step undone inside the text field."""
+        self.trans_edit.redo()
+
     def set_data(self, info_text, original_text, translated_text):
         self.trans_edit.blockSignals(True)
         self.orig_edit.blockSignals(True)
@@ -147,6 +202,7 @@ class EditorPanelComponent(QWidget):
             and (info_text != "No file selected" and not info_text.endswith("Line 0"))
         )
         self.set_fields_enabled(is_valid)
+        self.undo_state_changed.emit(self.has_local_undo(), self.has_local_redo())
 
     def set_fields_enabled(self, enabled):
         self.trans_edit.setEnabled(enabled)
@@ -160,6 +216,7 @@ class EditorPanelComponent(QWidget):
 
     def _on_text_changed(self):
         self.save_timer.start(500)
+        self.undo_state_changed.emit(self.has_local_undo(), self.has_local_redo())
 
     def _emit_change(self):
         text = self.trans_edit.toPlainText()
