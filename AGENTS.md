@@ -62,6 +62,21 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **Progress bar**: shows % of entries with non-whitespace translations
 - **Copyright footer**: `© 2024 Revi Wardana Putra.`
 
+## Replace All
+
+- Dialog: `ui/components/replace_dialog.py` — the **scope** tabs (`Current file` / `Whole project`) sit at the top; the find field, replace field, **match against** radio (`Original` / `Translated`) and case-sensitive checkbox live inside the tab content
+- The form is a single widget that is **reparented** into the active tab page (`_move_form_to`), so both tabs share one state
+- Each scope tab explains itself through a **tab tooltip** (`setTabToolTip`), not a label inside the page
+- The `Current file` tab is only added when a file is selected (`ReplaceDialog(..., has_file=...)`); without it the dialog shows the `Whole project` tab alone
+- Entry points: `Ctrl+H` (file scope), `Ctrl+Shift+H` (project scope) — both in the `&Edit` menu; the string-list button opens the dialog with the last used state
+- The dialog is **modeless** (`show()`, not `exec()`): the main window stays fully usable while it is open, so files/entries can still be browsed before replacing
+- The open dialog is kept in `AppController._replace_dialog`; opening it again just raises it and switches the scope, and it is closed when the project closes (`_on_project_closed` → `_close_replace_dialog`)
+- `Ctrl+H` / `Ctrl+Shift+H` also work inside the dialog (own `QShortcut`s) to switch the scope tab
+- The find/replace fields are single line: a line break is entered with `Shift+Enter` (or `Ctrl+Enter`) and is kept as the `\n` escape the data uses; pasted line breaks are converted the same way
+- `ProjectManager.replace_all(..., scope="file"|"project")` returns `(replaced_count, matched_count, affected_files)`
+- Project scope touches every file in `content` and is recorded as **one** undo command (`Replace All (Project)`), so a single `Ctrl+Z` reverts the whole run
+- `ReplaceDialog.SCOPE_FILE` / `ReplaceDialog.SCOPE_PROJECT` are the scope constants; the dialog state (incl. scope) is cached in `AppController._replace_state`
+
 ## Undo / Redo
 
 - `Ctrl+Z` undo, `Ctrl+Y` redo (also in the `&Edit` menu)
@@ -100,7 +115,7 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **CSV columns**: `file`, `original_text`, `translation` (import matches by composite key `(file_path, original)`)
 - **CSV import** supports duplicate keys (multiple matches per lookup)
 - **TXT import**: per-file, line count must match exactly; each line is `.strip()`-ped
-- **Replace All**: current file only, matches against `original` or `translated` (radio button)
+- **Replace All**: matches against `original` or `translated` (radio button); scope is `file` (current file) or `project` (all files)
 
 ## Build / Distribution
 

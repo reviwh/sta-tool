@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from PyQt6.QtWidgets import QFileDialog, QMessageBox, QDialog
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
@@ -19,6 +19,7 @@ class AppController(QObject):
         self.current_string_idx = -1
         self._toast = None
         self._replace_state = None
+        self._replace_dialog = None
         self._connect_signals()
 
     def _connect_signals(self):
@@ -52,6 +53,9 @@ class AppController(QObject):
         v.import_csv_requested.connect(self._on_import_csv_requested)
         v.shortcuts_requested.connect(self._on_shortcuts_requested)
         v.replace_all_requested.connect(self._on_replace_all_requested)
+        v.replace_all_project_requested.connect(
+            self._on_replace_all_project_requested
+        )
         v.undo_requested.connect(self._on_undo_requested)
         v.redo_requested.connect(self._on_redo_requested)
         m.history_changed.connect(self._update_history_menu_state)
@@ -97,6 +101,7 @@ class AppController(QObject):
         self._show_toast(f"Loaded: {os.path.basename(path)}")
 
     def _on_project_closed(self):
+        self._close_replace_dialog()
         self._update_ui_state()
         self.view.status_bar.showMessage("Ready")
 
@@ -501,31 +506,113 @@ class AppController(QObject):
                 self._show_toast("CSV import completed")
 
     def _on_replace_all_requested(self):
-        if self.current_file_idx == -1:
-            QMessageBox.warning(self.view, "Warning", "Please select a file before proceeding!")
+        self._open_replace_dialog(ReplaceDialog.SCOPE_FILE)
+
+    def _on_replace_all_project_requested(self):
+        self._open_replace_dialog(ReplaceDialog.SCOPE_PROJECT)
+
+    def _open_replace_dialog(self, scope):
+        """Show the replace dialog without blocking the main window.
+
+        The dialog is modeless, so files and entries can still be browsed
+        while it is open.
+        """
+        if not self.model.is_active():
             return
-        dialog = ReplaceDialog(self.view, state=self._replace_state)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            data = dialog.get_data()
-            self._replace_state = data
-            count, matched = self.model.replace_all(
-                self.current_file_idx,
-                data["find"],
-                data["replace"],
-                data["case_sensitive"],
-                data["source"],
-                focus_idx=self.current_string_idx,
-            )
-            if count > 0:
-                self._on_file_selected(self.current_file_idx)
-                self._show_toast(f"Replaced {count} occurrence{'s' if count != 1 else ''}")
-            elif matched > 0:
+
+        self._flush_save()
+
+        if self._replace_dialog is not None:
+            self._replace_dialog.set_scope(scope)
+            self._replace_dialog.raise_()
+            self._replace_dialog.activateWindow()
+            return
+
+        has_file = self.current_file_idx != -1
+        dialog = ReplaceDialog(
+            self.view,
+            state=self._replace_state,
+            scope=scope,
+            has_file=has_file,
+        )
+        dialog.setModal(False)
+        dialog.accepted.connect(self._on_replace_dialog_accepted)
+        dialog.finished.connect(self._on_replace_dialog_finished)
+        self._replace_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _on_replace_dialog_accepted(self):
+        dialog = self._replace_dialog
+        if dialog is None:
+            return
+
+        data = dialog.get_data()
+        self._replace_state = data
+        self._flush_save()
+        count, matched, files = self.model.replace_all(
+            self.current_file_idx,
+            data["find"],
+            data["replace"],
+            data["case_sensitive"],
+            data["source"],
+            focus_idx=self.current_string_idx,
+            scope=data["scope"],
+        )
+        if count > 0:
+            self._refresh_after_replace(data["scope"])
+            if data["scope"] == ReplaceDialog.SCOPE_PROJECT:
                 self._show_toast(
-                    f"{matched} matching entr{'y' if matched == 1 else 'ies'} found, "
-                    "but the text is not present in the translation"
+                    f"Replaced {count} occurrence{'s' if count != 1 else ''} "
+                    f"in {files} file{'s' if files != 1 else ''}"
                 )
             else:
-                self._show_toast("No matches found", duration=1000)
+                self._show_toast(
+                    f"Replaced {count} occurrence{'s' if count != 1 else ''}"
+                )
+        elif matched > 0:
+            self._show_toast(
+                f"{matched} matching entr{'y' if matched == 1 else 'ies'} found, "
+                "but the text is not present in the translation"
+            )
+        else:
+            self._show_toast("No matches found", duration=1000)
+
+    def _on_replace_dialog_finished(self, _result):
+        """Release the dialog once it is closed."""
+        dialog = self._replace_dialog
+        self._replace_dialog = None
+        if dialog is not None:
+            self._replace_state = dialog.get_data()
+            dialog.deleteLater()
+
+    def _close_replace_dialog(self):
+        """Close the replace dialog, e.g. when the project is closed."""
+        dialog = self._replace_dialog
+        if dialog is None:
+            return
+        self._replace_dialog = None
+        dialog.reject()
+        dialog.deleteLater()
+
+    def _refresh_after_replace(self, scope):
+        """Repaint the widgets affected by a replace operation."""
+        curr_file = self.current_file_idx
+        curr_string = self.current_string_idx
+
+        if scope == ReplaceDialog.SCOPE_PROJECT:
+            self._refresh_ui(preserve_selection=False)
+
+        if curr_file != -1:
+            self._on_file_selected(curr_file)
+
+        if curr_file != -1 and curr_string != -1:
+            row = self._row_for_entry(curr_string)
+            if row >= 0:
+                self.view.string_section.list_widget.setCurrentRow(row)
+
+        self.view.update_global_progress(self.model.data)
 
     def _on_shortcuts_requested(self):
         dialog = ShortcutsDialog(self.view)

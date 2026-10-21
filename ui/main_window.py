@@ -35,6 +35,7 @@ class StaTranslator(QMainWindow):
     import_csv_requested = pyqtSignal()
     shortcuts_requested = pyqtSignal()
     replace_all_requested = pyqtSignal()
+    replace_all_project_requested = pyqtSignal()
     undo_requested = pyqtSignal()
     redo_requested = pyqtSignal()
 

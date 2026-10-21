@@ -49,6 +49,7 @@ class ShortcutsDialog(QDialog):
             ("Ctrl+E", "Export as CSV"),
             ("F5", "Repack to .sta"),
             ("Ctrl+H", "Replace All"),
+            ("Ctrl+Shift+H", "Replace All in Project"),
             ("Ctrl+P", "Apply Plugin"),
             ("Ctrl+Shift+P", "Remove Plugin"),
             ("F1", "Toggle Keyboard Shortcuts"),

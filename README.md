@@ -9,7 +9,7 @@ Desktop application built with PyQt6 for extracting, translating, and repacking 
 - **CSV Import/Export** — Import and export translations via CSV for external editing
 - **TXT Import** — Per-file text import with line-count validation
 - **Plugin System** — Replace hex-encoded characters with human-readable tags via custom JSON plugin schemas
-- **Search & Replace** — Find and replace across all entries in the current file
+- **Search & Replace** — Find and replace across all entries in the current file or across the whole project
 - **Undo / Redo** — `Ctrl+Z` / `Ctrl+Y` history for edits, replace-all, and imports
 - **Dark/Light Themes** — Toggle between dark and light mode (auto-detects system theme)
 - **Autosave** — Automatic backup every 5 minutes to a `.tmp` file

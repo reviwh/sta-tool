@@ -164,8 +164,14 @@ class ProjectManager(QObject):
         case_sensitive,
         source_key,
         focus_idx=None,
+        scope="file",
     ):
-        """Find and replace all occurrences in a file's entries.
+        """Find and replace all occurrences in one file or in the whole project.
+
+        ``scope`` selects the search area:
+
+        - "file": only the entries of ``file_idx`` are searched.
+        - "project": every file of the project is searched.
 
         Entries are selected by matching ``find_str`` against ``source_key``:
 
@@ -176,63 +182,83 @@ class ProjectManager(QObject):
           instead, because the original is the text that gets written back to
           the game while the translation is empty.
 
-        Returns ``(replaced_count, matched_count)`` where replaced_count is the
-        number of replacements performed and matched_count is the number of
-        entries that matched the search text.
+        Returns ``(replaced_count, matched_count, affected_files)`` where
+        replaced_count is the number of replacements performed, matched_count
+        is the number of entries that matched the search text and
+        affected_files is the number of files that received a replacement.
         """
-        if file_idx < 0 or file_idx >= len(self.data):
-            return 0, 0
+        if scope == "project":
+            target_files = list(range(len(self.data)))
+        else:
+            if file_idx < 0 or file_idx >= len(self.data):
+                return 0, 0, 0
+            target_files = [file_idx]
 
         if not find_str:
-            return 0, 0
+            return 0, 0, 0
 
-        entries = self.data[file_idx]["entries"]
         replaced_count = 0
         matched_count = 0
+        affected_files = set()
         changes = []
         flags = 0 if case_sensitive else re.IGNORECASE
         pattern = re.compile(re.escape(find_str), flags)
         replacement = replace_str.replace("\\", "\\\\")
 
-        for entry_idx, entry in enumerate(entries):
-            source_text = entry.get(source_key, "")
-            if not pattern.search(source_text):
-                continue
+        for target_idx in target_files:
+            entries = self.data[target_idx]["entries"]
+            for entry_idx, entry in enumerate(entries):
+                source_text = entry.get(source_key, "")
+                if not pattern.search(source_text):
+                    continue
 
-            matched_count += 1
-            old_translated = entry.get("translated", "")
-            target_text = old_translated
+                matched_count += 1
+                old_translated = entry.get("translated", "")
+                target_text = old_translated
 
-            if not target_text.strip():
-                if source_key == "original":
-                    new_text = pattern.sub(replacement, source_text)
+                if not target_text.strip():
+                    if source_key == "original":
+                        new_text = pattern.sub(replacement, source_text)
+                        entry["translated"] = new_text
+                        replaced_count += 1
+                        if new_text != old_translated:
+                            affected_files.add(target_idx)
+                            changes.append(
+                                (target_idx, entry_idx, old_translated, new_text)
+                            )
+                    continue
+
+                new_text, n = pattern.subn(replacement, target_text)
+                if n > 0:
                     entry["translated"] = new_text
-                    replaced_count += 1
+                    replaced_count += n
                     if new_text != old_translated:
-                        changes.append((file_idx, entry_idx, old_translated, new_text))
-                continue
-
-            new_text, n = pattern.subn(replacement, target_text)
-            if n > 0:
-                entry["translated"] = new_text
-                replaced_count += n
-                if new_text != old_translated:
-                    changes.append((file_idx, entry_idx, old_translated, new_text))
+                        affected_files.add(target_idx)
+                        changes.append(
+                            (target_idx, entry_idx, old_translated, new_text)
+                        )
 
         if replaced_count > 0:
             self.is_dirty = True
             self.data_changed.emit()
 
         if changes:
+            focus = None
+            if 0 <= file_idx < len(self.data):
+                focus = self._focus_target(file_idx, focus_idx)
             self._push_command(
                 EditCommand(
                     changes,
-                    focus=self._focus_target(file_idx, focus_idx),
-                    label="Replace All",
+                    focus=focus,
+                    label=(
+                        "Replace All"
+                        if scope == "file"
+                        else "Replace All (Project)"
+                    ),
                 )
             )
 
-        return replaced_count, matched_count
+        return replaced_count, matched_count, len(affected_files)
 
     def _get_plugins(self):
         settings = self.full_data.get("settings", {})
