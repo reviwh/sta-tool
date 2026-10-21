@@ -362,7 +362,7 @@ class AppController(QObject):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_data()
             self._replace_state = data
-            count = self.model.replace_all(
+            count, matched = self.model.replace_all(
                 self.current_file_idx,
                 data["find"],
                 data["replace"],
@@ -372,6 +372,11 @@ class AppController(QObject):
             if count > 0:
                 self._on_file_selected(self.current_file_idx)
                 self._show_toast(f"Replaced {count} occurrence{'s' if count != 1 else ''}")
+            elif matched > 0:
+                self._show_toast(
+                    f"{matched} matching entr{'y' if matched == 1 else 'ies'} found, "
+                    "but the text is not present in the translation"
+                )
             else:
                 self._show_toast("No matches found", duration=1000)
 

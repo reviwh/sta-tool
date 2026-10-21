@@ -56,18 +56,40 @@ class ReplaceDialog(ClearButtonMixin, QDialog):
         source_layout.setContentsMargins(0, 0, 0, 0)
         source_layout.setSpacing(8)
 
-        match_label = QLabel("Match against:")
-        match_label.setFont(Theme.FONT)
-        source_layout.addWidget(match_label)
+        self.match_label = QLabel("Match against:")
+        self.match_label.setFont(Theme.FONT)
+        self.match_label.setToolTip(
+            "Searches the find text in:\n"
+            "Original - the source text\n"
+            "Translated - the current translation"
+        )
+        source_layout.addWidget(self.match_label)
         source_layout.addStretch()
 
         self.radio_original = QRadioButton("Original")
         self.radio_original.setFont(Theme.FONT)
         self.radio_original.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.radio_original.setToolTip(
+            "Search the original text.\n"
+            "\n"
+            "No translation: the original\n"
+            "text is replaced and becomes\n"
+            "the translation.\n"
+            "\n"
+            "With translation: only the\n"
+            "matching part is replaced."
+        )
         self.radio_translated = QRadioButton("Translated")
         self.radio_translated.setChecked(True)
         self.radio_translated.setFont(Theme.FONT)
         self.radio_translated.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.radio_translated.setToolTip(
+            "Search the current translation\n"
+            "and replace it in place.\n"
+            "\n"
+            "Entries without a translation\n"
+            "are skipped."
+        )
 
         self.source_group = QButtonGroup(self)
         self.source_group.addButton(self.radio_original)

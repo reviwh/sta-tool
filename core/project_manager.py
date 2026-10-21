@@ -139,34 +139,58 @@ class ProjectManager(QObject):
             return False, str(e)
 
     def replace_all(self, file_idx, find_str, replace_str, case_sensitive, source_key):
-        """Find and replace all occurrences in a file's entries."""
+        """Find and replace all occurrences in a file's entries.
+
+        Entries are selected by matching ``find_str`` against ``source_key``:
+
+        - "translated": the substitution is applied inside the translation.
+        - "original": the substitution is applied inside the translation too, so
+          the rest of the translated text stays intact. Untranslated entries
+          (empty translation) get the substitution applied to the original text
+          instead, because the original is the text that gets written back to
+          the game while the translation is empty.
+
+        Returns ``(replaced_count, matched_count)`` where replaced_count is the
+        number of replacements performed and matched_count is the number of
+        entries that matched the search text.
+        """
         if file_idx < 0 or file_idx >= len(self.data):
-            return 0
+            return 0, 0
+
+        if not find_str:
+            return 0, 0
 
         entries = self.data[file_idx]["entries"]
-        change_count = 0
+        replaced_count = 0
+        matched_count = 0
         flags = 0 if case_sensitive else re.IGNORECASE
         pattern = re.compile(re.escape(find_str), flags)
+        replacement = replace_str.replace("\\", "\\\\")
 
         for entry in entries:
             source_text = entry.get(source_key, "")
+            if not pattern.search(source_text):
+                continue
 
-            if source_key == "original":
-                if pattern.search(source_text):
-                    entry["translated"] = replace_str
-                    change_count += 1
-            else:
-                target_text = entry.get("translated", "")
-                new_text, n = pattern.subn(replace_str, target_text)
-                if n > 0:
-                    entry["translated"] = new_text
-                    change_count += n
+            matched_count += 1
+            target_text = entry.get("translated", "")
 
-        if change_count > 0:
+            if not target_text.strip():
+                if source_key == "original":
+                    entry["translated"] = pattern.sub(replacement, source_text)
+                    replaced_count += 1
+                continue
+
+            new_text, n = pattern.subn(replacement, target_text)
+            if n > 0:
+                entry["translated"] = new_text
+                replaced_count += n
+
+        if replaced_count > 0:
             self.is_dirty = True
             self.data_changed.emit()
 
-        return change_count
+        return replaced_count, matched_count
 
     def _get_plugins(self):
         settings = self.full_data.get("settings", {})
