@@ -116,6 +116,7 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **CSV import** supports duplicate keys (multiple matches per lookup)
 - **TXT import**: per-file, line count must match exactly; each line is `.strip()`-ped
 - **Replace All**: matches against `original` or `translated` (radio button); scope is `file` (current file) or `project` (all files)
+- **Line breaks**: the canonical storage form is the two characters `\n`; `ProjectManager._canonical_breaks()` converts real line breaks to it. Replace All compares the canonical form on both sides, so a keyword with a line break matches entries that store it either way
 
 ## Build / Distribution
 

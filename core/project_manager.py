@@ -156,6 +156,21 @@ class ProjectManager(QObject):
             self.error_occurred.emit(f"Import failed: {e}")
             return False, str(e)
 
+    @staticmethod
+    def _canonical_breaks(text):
+        """Return the text with real line breaks turned into the ``\\n`` escape.
+
+        The project data stores line breaks as the two characters ``\\n``,
+        but translations coming from other sources (an older export, a hand
+        edited JSON, a spreadsheet) can still hold real line breaks. Both
+        variants mean the same thing, so searching and replacing always runs
+        on the canonical form to make a keyword with a line break match
+        regardless of how the entry happens to store it.
+        """
+        if not text:
+            return text
+        return text.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n")
+
     def replace_all(
         self,
         file_idx,
@@ -182,6 +197,11 @@ class ProjectManager(QObject):
           instead, because the original is the text that gets written back to
           the game while the translation is empty.
 
+        The search text and the searched text are compared in the canonical
+        form (see ``_canonical_breaks``), so a keyword holding a line break
+        matches an entry no matter if the line break is stored as the ``\\n``
+        escape or as a real line break.
+
         Returns ``(replaced_count, matched_count, affected_files)`` where
         replaced_count is the number of replacements performed, matched_count
         is the number of entries that matched the search text and
@@ -202,21 +222,21 @@ class ProjectManager(QObject):
         affected_files = set()
         changes = []
         flags = 0 if case_sensitive else re.IGNORECASE
+        find_str = self._canonical_breaks(find_str)
         pattern = re.compile(re.escape(find_str), flags)
-        replacement = replace_str.replace("\\", "\\\\")
+        replacement = self._canonical_breaks(replace_str).replace("\\", "\\\\")
 
         for target_idx in target_files:
             entries = self.data[target_idx]["entries"]
             for entry_idx, entry in enumerate(entries):
-                source_text = entry.get(source_key, "")
+                source_text = self._canonical_breaks(entry.get(source_key, ""))
                 if not pattern.search(source_text):
                     continue
 
                 matched_count += 1
                 old_translated = entry.get("translated", "")
-                target_text = old_translated
 
-                if not target_text.strip():
+                if not old_translated.strip():
                     if source_key == "original":
                         new_text = pattern.sub(replacement, source_text)
                         entry["translated"] = new_text
@@ -228,6 +248,7 @@ class ProjectManager(QObject):
                             )
                     continue
 
+                target_text = self._canonical_breaks(old_translated)
                 new_text, n = pattern.subn(replacement, target_text)
                 if n > 0:
                     entry["translated"] = new_text
@@ -405,7 +426,7 @@ class ProjectManager(QObject):
                         for file_idx, entry_idx in matches:
                             entry = self.data[file_idx]["entries"][entry_idx]
                             old = entry.get("translated", "")
-                            new = row["translation"]
+                            new = self._canonical_breaks(row["translation"])
                             if old != new:
                                 entry["translated"] = new
                                 changes.append((file_idx, entry_idx, old, new))
