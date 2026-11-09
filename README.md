@@ -72,6 +72,10 @@
 | `F3` | Focus filter field |
 | `Ctrl+Enter` / `Ctrl+Shift+Enter` | Next / previous string line |
 | `Ctrl+Shift+,` / `Ctrl+Shift+.` | Decrease / increase font size |
+| `Ctrl+1` / `Ctrl+2` / `Ctrl+3` | Focus file tree / string list / editor |
+| `F6` / `Shift+F6` | Next / previous pane |
+| `Enter` | Edit the selected string |
+| `Esc` | Leave the editor or string list |
 
 </details>
 

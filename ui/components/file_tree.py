@@ -17,11 +17,14 @@ from ui.components.clear_button import ClearButtonMixin
 class FileTreeComponent(ClearButtonMixin, QWidget):
     file_selected = pyqtSignal(int)
     filter_changed = pyqtSignal()
+    request_focus_list = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("file_tree")
         self.setMinimumWidth(100)
+        self._loading = False
+        self._active_idx = -1
         self.search_timer = QTimer()
         self.search_timer.setSingleShot(True)
         self.search_timer.timeout.connect(self.execute_filter)
@@ -88,7 +91,10 @@ class FileTreeComponent(ClearButtonMixin, QWidget):
         layout.addWidget(self.tree_view)
 
         self.tree_view.clicked.connect(self._handle_click)
-        self.tree_view.activated.connect(self._handle_click)
+        self.tree_view.activated.connect(self._handle_activated)
+        self.tree_view.selectionModel().currentChanged.connect(
+            self._on_current_changed
+        )
         self.tree_view.expanded.connect(self._on_expanded)
         self.tree_view.collapsed.connect(self._on_collapsed)
 
@@ -136,14 +142,78 @@ class FileTreeComponent(ClearButtonMixin, QWidget):
 
     def _handle_click(self, index):
         item = self.model.itemFromIndex(index)
+        if item is None:
+            return
+        data_idx = item.data(Qt.ItemDataRole.UserRole)
+
+        if data_idx == -1:
+            self.tree_view.setExpanded(index, not self.tree_view.isExpanded(index))
+
+    def _handle_activated(self, index):
+        item = self.model.itemFromIndex(index)
+        if item is None:
+            return
         data_idx = item.data(Qt.ItemDataRole.UserRole)
 
         if data_idx == -1:
             self.tree_view.setExpanded(index, not self.tree_view.isExpanded(index))
         else:
             self.file_selected.emit(data_idx)
+            self.request_focus_list.emit()
+
+    def _on_current_changed(self, current, _previous):
+        """Load a file as soon as it becomes the current row.
+
+        This makes the tree usable with the arrow keys: moving the selection
+        updates the string list without requiring a click or Enter.
+        """
+        if self._loading or not current.isValid():
+            return
+        item = self.model.itemFromIndex(current)
+        if item is None:
+            return
+        data_idx = item.data(Qt.ItemDataRole.UserRole)
+        if data_idx is None or data_idx == -1:
+            return
+        self._active_idx = data_idx
+        self.file_selected.emit(data_idx)
+
+    def focus_tree(self):
+        """Give the tree keyboard focus, selecting the current file if possible."""
+        self.tree_view.setFocus()
+        target = self._find_index_for_data(self._active_idx)
+        if target is not None:
+            self._reveal_index(target)
+            self.tree_view.setCurrentIndex(target)
+            self.tree_view.scrollTo(target)
+            return
+        if self.model.rowCount() > 0:
+            self.tree_view.setCurrentIndex(self.model.index(0, 0))
+
+    def _reveal_index(self, index):
+        """Expand the ancestors of ``index`` so it becomes visible."""
+        parent = index.parent()
+        while parent.isValid():
+            self.tree_view.setExpanded(parent, True)
+            parent = parent.parent()
+
+    def _find_index_for_data(self, data_idx, parent=QModelIndex()):
+        """Return the model index whose user role matches ``data_idx``."""
+        if data_idx is None or data_idx == -1:
+            return None
+        for row in range(self.model.rowCount(parent)):
+            index = self.model.index(row, 0, parent)
+            item = self.model.itemFromIndex(index)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == data_idx:
+                return index
+            found = self._find_index_for_data(data_idx, index)
+            if found is not None:
+                return found
+        return None
 
     def set_data(self, visible_files, raw_data, active_idx=-1):
+        self._loading = True
+        self._active_idx = active_idx
         expanded_paths = set()
         self._save_expanded_state(QModelIndex(), expanded_paths)
 
@@ -203,8 +273,13 @@ class FileTreeComponent(ClearButtonMixin, QWidget):
         self._sort_node(root_node)
         self._restore_expanded_state(QModelIndex(), expanded_paths)
 
+        target = self._find_index_for_data(active_idx)
+        if target is not None:
+            self.tree_view.setCurrentIndex(target)
+
         self.tree_view.verticalScrollBar().setValue(v_scroll)
         self.tree_view.horizontalScrollBar().setValue(h_scroll)
+        self._loading = False
 
     def _sort_node(self, node):
         items = []

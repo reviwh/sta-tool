@@ -9,13 +9,14 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
 )
-from PyQt6.QtCore import pyqtSignal, Qt, QSize
+from PyQt6.QtCore import pyqtSignal, Qt, QSize, QEvent
 from PyQt6.QtGui import QFont, QColor
 
 
 class StringListComponent(QWidget):
     string_selected = pyqtSignal(int)
     request_focus_editor = pyqtSignal()
+    request_focus_tree = pyqtSignal()
     import_txt_requested = pyqtSignal()
     replace_all_requested = pyqtSignal()
 
@@ -74,6 +75,25 @@ class StringListComponent(QWidget):
         self.list_widget.itemDoubleClicked.connect(
             lambda: self.request_focus_editor.emit()
         )
+        self.list_widget.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if obj is self.list_widget and event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if self.list_widget.currentRow() >= 0:
+                    self.request_focus_editor.emit()
+                return True
+            if key == Qt.Key.Key_Escape:
+                self.request_focus_tree.emit()
+                return True
+        return super().eventFilter(obj, event)
+
+    def focus_list(self):
+        """Give the list keyboard focus, selecting the first row if needed."""
+        self.list_widget.setFocus()
+        if self.list_widget.currentRow() < 0 and self.list_widget.count() > 0:
+            self.list_widget.setCurrentRow(0)
 
     def _truncated_text(self, text):
         return (text[:50] + "...") if len(text) > 50 else text

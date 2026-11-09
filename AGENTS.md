@@ -88,6 +88,15 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - The editor consumes `Ctrl+Z` / `Ctrl+Y` in `eventFilter` — a plain `QShortcut` never reaches the action because `QTextEdit` handles those keys itself
 - History is cleared on project load/close; a new edit clears the redo stack
 
+## Keyboard Navigation
+- Pane focus: `Ctrl+1` file tree, `Ctrl+2` string list, `Ctrl+3` editor; `F6` / `Shift+F6` cycle panes (editor included only when an entry is selected)
+- The file tree loads a file as soon as it becomes the current row (`selectionModel().currentChanged`), so arrow keys browse files; `Enter` on a file loads it and moves focus to the string list
+- The string list moves the editor selection with the arrow keys; `Enter` (or double-click) focuses the translation editor
+- `Esc` leaves the editor to the string list, and leaves the string list to the file tree
+- `QTextEdit.setTabChangesFocus(True)` lets `Tab` / `Shift+Tab` move out of the editor instead of inserting tabs
+- `FileTreeComponent._loading` guards `set_data()` so rebuilding the tree does not emit spurious file selections
+- The navigation actions live in the `&Go` menu (`MenuBarComponent`); view signals are wired in `AppController._connect_signals()`
+
 ## Plugins
 
 - JSON list: `[{ "hex": "EE8080", "string": "[L-Analog]" }]`
