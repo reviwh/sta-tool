@@ -553,6 +553,37 @@ QLabel#section_label {
     background-color: transparent;
 }
 
+/* Scope tabs */
+QTabWidget::pane {
+    border-top: 1px solid #E5E7EB;
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    border-radius: 4px;
+    background-color: #ffffff;
+}
+
+QTabBar::tab {
+    background-color: #eaeaea;
+    color: #6B7280;
+    border: 1px solid #E5E7EB;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    padding: 5px 12px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:selected {
+    background-color: #3982F7;
+    color: #FFFFFF;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: #F1F5F9;
+    color: #1F1F1F;
+}
+
 /* Toast notification */
 QFrame#toast_container {
     background-color: #eaeaea;

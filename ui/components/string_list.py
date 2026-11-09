@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
 )
 from PyQt6.QtCore import pyqtSignal, Qt, QSize
-from PyQt6.QtGui import QFont, QColor, QKeySequence, QShortcut
+from PyQt6.QtGui import QFont, QColor
 
 
 class StringListComponent(QWidget):
@@ -49,9 +49,9 @@ class StringListComponent(QWidget):
         self.btn_replace_all = QPushButton(" Replace All")
         self.btn_replace_all.setIcon(Theme.get_icon("find_replace"))
         self.btn_replace_all.setIconSize(icon_size)
-        self.btn_replace_all.setShortcut(QKeySequence("Ctrl+H"))
         self.btn_replace_all.setToolTip(
-            "Search and replace text across all entries (in current file)"
+            "Search and replace text across all entries\n"
+            "(current file or the whole project)"
         )
         self.btn_replace_all.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_replace_all.clicked.connect(self.replace_all_requested.emit)

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-from PyQt6.QtWidgets import QFileDialog, QMessageBox, QDialog
-from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
 from ui.theme import Theme
@@ -19,6 +19,7 @@ class AppController(QObject):
         self.current_string_idx = -1
         self._toast = None
         self._replace_state = None
+        self._replace_dialog = None
         self._connect_signals()
 
     def _connect_signals(self):
@@ -52,6 +53,12 @@ class AppController(QObject):
         v.import_csv_requested.connect(self._on_import_csv_requested)
         v.shortcuts_requested.connect(self._on_shortcuts_requested)
         v.replace_all_requested.connect(self._on_replace_all_requested)
+        v.replace_all_project_requested.connect(
+            self._on_replace_all_project_requested
+        )
+        v.undo_requested.connect(self._on_undo_requested)
+        v.redo_requested.connect(self._on_redo_requested)
+        m.history_changed.connect(self._update_history_menu_state)
 
         # File tree
         v.file_section.file_selected.connect(self._on_file_selected)
@@ -69,6 +76,11 @@ class AppController(QObject):
         v.editor_section.request_prev.connect(self._go_to_prev_string)
         v.editor_section.font_changed.connect(self._on_font_settings_changed)
         v.editor_section.copy_occurred.connect(lambda msg: self._show_toast(msg))
+        v.editor_section.undo_requested.connect(self._on_undo_requested)
+        v.editor_section.redo_requested.connect(self._on_redo_requested)
+        v.editor_section.undo_state_changed.connect(
+            lambda *_: self._update_history_menu_state()
+        )
 
         # Welcome panel
         v.welcome_panel.extract_requested.connect(self._on_extract_requested)
@@ -89,6 +101,7 @@ class AppController(QObject):
         self._show_toast(f"Loaded: {os.path.basename(path)}")
 
     def _on_project_closed(self):
+        self._close_replace_dialog()
         self._update_ui_state()
         self.view.status_bar.showMessage("Ready")
 
@@ -115,6 +128,7 @@ class AppController(QObject):
 
     def _on_file_selected(self, idx):
         self._flush_save()
+        self.model.end_edit_session()
         self.current_file_idx = idx
         keyword = self.view.file_section.get_search_text()
         show_warnings = self.view.file_section.is_warning_filter_active()
@@ -133,12 +147,18 @@ class AppController(QObject):
 
     def _on_string_selected(self, real_idx):
         self._flush_save()
+        self.model.end_edit_session()
         self.current_string_idx = real_idx
-        file_path = self.model.data[self.current_file_idx]["file_path"]
-        entry = self.model.data[self.current_file_idx]["entries"][real_idx]
-        self.view.editor_section.set_fields_enabled(True)
-        self.view.editor_section.set_data(
-            info_text=f"{os.path.basename(file_path)}, Line {real_idx + 1}",
+        self._display_entry(self.current_file_idx, real_idx)
+
+    def _display_entry(self, file_idx, entry_idx):
+        """Show the given entry inside the editor panel."""
+        v = self.view
+        file_path = self.model.data[file_idx]["file_path"]
+        entry = self.model.data[file_idx]["entries"][entry_idx]
+        v.editor_section.set_fields_enabled(True)
+        v.editor_section.set_data(
+            info_text=f"{os.path.basename(file_path)}, Line {entry_idx + 1}",
             original_text=entry["original"],
             translated_text=entry.get("translated", ""),
         )
@@ -153,9 +173,10 @@ class AppController(QObject):
         if self.current_file_idx == -1 or self.current_string_idx == -1:
             return
         txt = text.replace("\n", "\\n")
-        current_row = self.view.string_section.list_widget.currentRow()
-        self.view.string_section.update_item_color(current_row, txt)
-        self.view.string_section.update_item_text(current_row, txt)
+        row = self._row_for_entry(self.current_string_idx)
+        if row >= 0:
+            self.view.string_section.update_item_color(row, txt)
+            self.view.string_section.update_item_text(row, txt)
         current_entries = self.model.data[self.current_file_idx]["entries"]
         self.view.file_section.update_current_file_text(
             self.current_file_idx, current_entries
@@ -164,6 +185,134 @@ class AppController(QObject):
             self.current_file_idx, self.current_string_idx, txt
         )
         self.view.update_global_progress(self.model.data)
+
+    # --- Undo / redo ---------------------------------------------------------
+
+    def _on_undo_requested(self):
+        """Undo the last change, preferring the text field history."""
+        editor = self.view.editor_section
+        if editor.has_local_focus() and editor.has_local_undo():
+            editor.undo_local()
+            self._update_history_menu_state()
+            return
+
+        self._flush_save()
+        command = self.model.undo()
+        if command is None:
+            self._update_history_menu_state()
+            return
+
+        self._after_history_change(command, "Undo")
+
+    def _on_redo_requested(self):
+        """Redo the last undone change, preferring the text field history."""
+        editor = self.view.editor_section
+        if (
+            not self.model.undo_stack.can_redo
+            and editor.has_local_focus()
+            and editor.has_local_redo()
+        ):
+            editor.redo_local()
+            self._update_history_menu_state()
+            return
+
+        self._flush_save()
+        command = self.model.redo()
+        if command is None:
+            self._update_history_menu_state()
+            return
+
+        self._after_history_change(command, "Redo")
+
+    def _after_history_change(self, command, action):
+        """Refresh the views after an undo/redo and restore the focus."""
+        if self.current_file_idx != -1 and self.current_string_idx != -1:
+            self._display_entry(self.current_file_idx, self.current_string_idx)
+
+        self._sync_views_after_history(command)
+
+        if command.focus is not None:
+            self._focus_cell(command.focus[0], command.focus[1])
+
+        self.view.status_bar.showMessage(f"{action}: {command.label}")
+        self._update_history_menu_state()
+
+    def _sync_views_after_history(self, command):
+        """Refresh list/tree/progress widgets affected by a history step."""
+        if self.current_file_idx in command.files():
+            self._refresh_string_list_items()
+
+        for file_idx in command.files():
+            if 0 <= file_idx < len(self.model.data):
+                self.view.file_section.update_current_file_text(
+                    file_idx, self.model.data[file_idx]["entries"]
+                )
+
+        if 0 <= self.current_file_idx < len(self.model.data):
+            self.view.file_section.update_current_file_text(
+                self.current_file_idx,
+                self.model.data[self.current_file_idx]["entries"],
+            )
+
+        self.view.update_global_progress(self.model.data)
+
+    def _refresh_string_list_items(self):
+        """Repaint the string list rows from the current model state."""
+        lw = self.view.string_section.list_widget
+        if self.current_file_idx < 0 or self.current_file_idx >= len(self.model.data):
+            return
+
+        entries = self.model.data[self.current_file_idx]["entries"]
+        for row in range(lw.count()):
+            item = lw.item(row)
+            real_idx = item.data(Qt.ItemDataRole.UserRole)
+            if real_idx is None or real_idx >= len(entries):
+                continue
+            translated = entries[real_idx].get("translated", "")
+            self.view.string_section.update_item_text(row, translated)
+            self.view.string_section.update_item_color(row, translated)
+
+    def _row_for_entry(self, entry_idx):
+        """Return the list row showing the given entry index."""
+        lw = self.view.string_section.list_widget
+        for row in range(lw.count()):
+            item = lw.item(row)
+            if item.data(Qt.ItemDataRole.UserRole) == entry_idx:
+                return row
+        return -1
+
+    def _focus_cell(self, file_idx, entry_idx):
+        """Move the selection and the keyboard focus to the given entry."""
+        v = self.view
+        if file_idx < 0 or file_idx >= len(self.model.data):
+            return
+
+        entries = self.model.data[file_idx]["entries"]
+        if entry_idx < 0 or entry_idx >= len(entries):
+            return
+
+        if file_idx != self.current_file_idx:
+            self._on_file_selected(file_idx)
+
+        row = self._row_for_entry(entry_idx)
+        if row >= 0 and v.string_section.list_widget.currentRow() != row:
+            v.string_section.list_widget.setCurrentRow(row)
+        else:
+            self.current_string_idx = entry_idx
+            self._display_entry(file_idx, entry_idx)
+
+        self._focus_translation_editor()
+
+    def _update_history_menu_state(self):
+        """Enable/disable the undo and redo menu entries."""
+        editor = self.view.editor_section
+        can_undo = self.model.undo_stack.can_undo or (
+            editor.has_local_focus() and editor.has_local_undo()
+        )
+        can_redo = self.model.undo_stack.can_redo or (
+            editor.has_local_focus() and editor.has_local_redo()
+        )
+        self.view.menu_bar.set_history_state(can_undo, can_redo)
 
     def _on_filter_changed(self):
         if not self.model.is_active():
@@ -323,7 +472,9 @@ class AppController(QObject):
             self.view, "Import Translation from TXT File", "", "Text Files (*.txt)"
         )
         if path:
-            success, msg = self.model.import_txt(self.current_file_idx, path)
+            success, msg = self.model.import_txt(
+                self.current_file_idx, path, focus_idx=self.current_string_idx
+            )
             if success:
                 self._on_file_selected(self.current_file_idx)
                 self._show_toast("Import completed successfully")
@@ -355,30 +506,114 @@ class AppController(QObject):
                 self._show_toast("CSV import completed")
 
     def _on_replace_all_requested(self):
-        if self.current_file_idx == -1:
-            QMessageBox.warning(self.view, "Warning", "Please select a file before proceeding!")
+        self._open_replace_dialog(ReplaceDialog.SCOPE_FILE)
+
+    def _on_replace_all_project_requested(self):
+        self._open_replace_dialog(ReplaceDialog.SCOPE_PROJECT)
+
+    def _open_replace_dialog(self, scope):
+        """Show the replace dialog without blocking the main window.
+
+        The dialog is modeless, so files and entries can still be browsed
+        while it is open.
+        """
+        if not self.model.is_active():
             return
-        dialog = ReplaceDialog(self.view, state=self._replace_state)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            data = dialog.get_data()
-            self._replace_state = data
-            count, matched = self.model.replace_all(
-                self.current_file_idx,
-                data["find"],
-                data["replace"],
-                data["case_sensitive"],
-                data["source"],
-            )
-            if count > 0:
-                self._on_file_selected(self.current_file_idx)
-                self._show_toast(f"Replaced {count} occurrence{'s' if count != 1 else ''}")
-            elif matched > 0:
+
+        self._flush_save()
+
+        if self._replace_dialog is not None:
+            self._replace_dialog.set_scope(scope)
+            self._replace_dialog.raise_()
+            self._replace_dialog.activateWindow()
+            self._replace_dialog.focus_find()
+            return
+
+        has_file = self.current_file_idx != -1
+        dialog = ReplaceDialog(
+            self.view,
+            state=self._replace_state,
+            scope=scope,
+            has_file=has_file,
+        )
+        dialog.setModal(False)
+        dialog.accepted.connect(self._on_replace_dialog_accepted)
+        dialog.finished.connect(self._on_replace_dialog_finished)
+        self._replace_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _on_replace_dialog_accepted(self):
+        dialog = self._replace_dialog
+        if dialog is None:
+            return
+
+        data = dialog.get_data()
+        self._replace_state = data
+        self._flush_save()
+        count, matched, files = self.model.replace_all(
+            self.current_file_idx,
+            data["find"],
+            data["replace"],
+            data["case_sensitive"],
+            data["source"],
+            focus_idx=self.current_string_idx,
+            scope=data["scope"],
+        )
+        if count > 0:
+            self._refresh_after_replace(data["scope"])
+            if data["scope"] == ReplaceDialog.SCOPE_PROJECT:
                 self._show_toast(
-                    f"{matched} matching entr{'y' if matched == 1 else 'ies'} found, "
-                    "but the text is not present in the translation"
+                    f"Replaced {count} occurrence{'s' if count != 1 else ''} "
+                    f"in {files} file{'s' if files != 1 else ''}"
                 )
             else:
-                self._show_toast("No matches found", duration=1000)
+                self._show_toast(
+                    f"Replaced {count} occurrence{'s' if count != 1 else ''}"
+                )
+        elif matched > 0:
+            self._show_toast(
+                f"{matched} matching entr{'y' if matched == 1 else 'ies'} found, "
+                "but the text is not present in the translation"
+            )
+        else:
+            self._show_toast("No matches found", duration=1000)
+
+    def _on_replace_dialog_finished(self, _result):
+        """Release the dialog once it is closed."""
+        dialog = self._replace_dialog
+        self._replace_dialog = None
+        if dialog is not None:
+            self._replace_state = dialog.get_data()
+            dialog.deleteLater()
+
+    def _close_replace_dialog(self):
+        """Close the replace dialog, e.g. when the project is closed."""
+        dialog = self._replace_dialog
+        if dialog is None:
+            return
+        self._replace_dialog = None
+        dialog.reject()
+        dialog.deleteLater()
+
+    def _refresh_after_replace(self, scope):
+        """Repaint the widgets affected by a replace operation."""
+        curr_file = self.current_file_idx
+        curr_string = self.current_string_idx
+
+        if scope == ReplaceDialog.SCOPE_PROJECT:
+            self._refresh_ui(preserve_selection=False)
+
+        if curr_file != -1:
+            self._on_file_selected(curr_file)
+
+        if curr_file != -1 and curr_string != -1:
+            row = self._row_for_entry(curr_string)
+            if row >= 0:
+                self.view.string_section.list_widget.setCurrentRow(row)
+
+        self.view.update_global_progress(self.model.data)
 
     def _on_shortcuts_requested(self):
         dialog = ShortcutsDialog(self.view)

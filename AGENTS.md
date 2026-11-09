@@ -35,9 +35,10 @@ All file I/O runs on the main thread (no `QThread` usage despite skill recommend
 main.py — QApplication init, wires Model → View → Controller
   ├── core/project_manager.py  — QObject with signals; lifecycle owner
   │     (load, save, extract, repack, autosave, CSV/TXT import/export,
-  │      replace-all, plugin apply/reverse)
+  │      replace-all, plugin apply/reverse, undo/redo history)
   │     ├── core/extractor.py  — folder → project JSON
-  │     └── core/repacker.py   — project JSON → .sta folder
+  │     ├── core/repacker.py   — project JSON → .sta folder
+  │     └── core/undo_stack.py — EditCommand + UndoStack (history)
   ├── ui/main_window.py:StaTranslator — QMainWindow, widget composition
   │   ├── ui/components/file_tree.py
   │   ├── ui/components/string_list.py
@@ -60,6 +61,32 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **Window title**: `STA Translator Tool - Folder/Name *` (asterisk when dirty)
 - **Progress bar**: shows % of entries with non-whitespace translations
 - **Copyright footer**: `© 2024 Revi Wardana Putra.`
+
+## Replace All
+
+- Dialog: `ui/components/replace_dialog.py` — the **scope** tabs (`Current file` / `Whole project`) sit at the top; the find field, replace field, **match against** radio (`Original` / `Translated`) and case-sensitive checkbox live inside the tab content
+- The form is a single widget that is **reparented** into the active tab page (`_move_form_to`), so both tabs share one state
+- Each scope tab explains itself through a **tab tooltip** (`setTabToolTip`), not a label inside the page
+- The `Current file` tab is only added when a file is selected (`ReplaceDialog(..., has_file=...)`); without it the dialog shows the `Whole project` tab alone
+- Entry points: `Ctrl+H` (file scope), `Ctrl+Shift+H` (project scope) — both in the `&Edit` menu; the string-list button opens the dialog with the last used state
+- The dialog is **modeless** (`show()`, not `exec()`): the main window stays fully usable while it is open, so files/entries can still be browsed before replacing
+- The open dialog is kept in `AppController._replace_dialog`; opening it again just raises it and switches the scope, and it is closed when the project closes (`_on_project_closed` → `_close_replace_dialog`)
+- `Ctrl+H` / `Ctrl+Shift+H` also work inside the dialog (own `QShortcut`s) to switch the scope tab
+- The find/replace fields are single line: a line break is entered with `Shift+Enter` (or `Ctrl+Enter`) and is kept as the `\n` escape the data uses; pasted line breaks are converted the same way
+- `ProjectManager.replace_all(..., scope="file"|"project")` returns `(replaced_count, matched_count, affected_files)`
+- Project scope touches every file in `content` and is recorded as **one** undo command (`Replace All (Project)`), so a single `Ctrl+Z` reverts the whole run
+- `ReplaceDialog.SCOPE_FILE` / `ReplaceDialog.SCOPE_PROJECT` are the scope constants; the dialog state (incl. scope) is cached in `AppController._replace_state`
+
+## Undo / Redo
+
+- `Ctrl+Z` undo, `Ctrl+Y` redo (also in the `&Edit` menu)
+- **In the translation field** the text edit keeps its own history: `Ctrl+Z` / `Ctrl+Shift+Z` undo/redo the typed text while the field has focus
+- **Everywhere else** the app history (`core/undo_stack.py`) takes over:
+  - Editing a translation records one command per entry (all typing of that entry merges into a single command)
+  - Undo of a translation restores the previous value **and moves the selection/focus back to that entry**
+  - Replace All / TXT import / CSV import are recorded as one bulk command → undo reverts all of it, redo re-applies it
+- The editor consumes `Ctrl+Z` / `Ctrl+Y` in `eventFilter` — a plain `QShortcut` never reaches the action because `QTextEdit` handles those keys itself
+- History is cleared on project load/close; a new edit clears the redo stack
 
 ## Plugins
 
@@ -88,7 +115,8 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **CSV columns**: `file`, `original_text`, `translation` (import matches by composite key `(file_path, original)`)
 - **CSV import** supports duplicate keys (multiple matches per lookup)
 - **TXT import**: per-file, line count must match exactly; each line is `.strip()`-ped
-- **Replace All**: current file only, matches against `original` or `translated` (radio button)
+- **Replace All**: matches against `original` or `translated` (radio button); scope is `file` (current file) or `project` (all files)
+- **Line breaks**: the canonical storage form is the two characters `\n`; `ProjectManager._canonical_breaks()` converts real line breaks to it. Replace All compares the canonical form on both sides, so a keyword with a line break matches entries that store it either way
 
 ## Build / Distribution
 

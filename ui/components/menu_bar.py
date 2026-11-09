@@ -62,6 +62,36 @@ class MenuBarComponent(QObject):
         )
         file_menu.addAction(self.action_export_csv)
 
+        edit_menu = menu_bar.addMenu("&Edit")
+
+        self.action_undo = QAction("&Undo", view)
+        self.action_undo.setShortcut(QKeySequence("Ctrl+Z"))
+        self.action_undo.triggered.connect(self._view.undo_requested)
+        edit_menu.addAction(self.action_undo)
+
+        self.action_redo = QAction("&Redo", view)
+        self.action_redo.setShortcut(QKeySequence("Ctrl+Y"))
+        self.action_redo.triggered.connect(self._view.redo_requested)
+        edit_menu.addAction(self.action_redo)
+
+        edit_menu.addSeparator()
+
+        self.action_replace_all = QAction("Replace &All...", view)
+        self.action_replace_all.setShortcut(QKeySequence("Ctrl+H"))
+        self.action_replace_all.triggered.connect(
+            self._view.replace_all_requested
+        )
+        edit_menu.addAction(self.action_replace_all)
+
+        self.action_replace_all_project = QAction(
+            "Replace All in &Project...", view
+        )
+        self.action_replace_all_project.setShortcut(QKeySequence("Ctrl+Shift+H"))
+        self.action_replace_all_project.triggered.connect(
+            self._view.replace_all_project_requested
+        )
+        edit_menu.addAction(self.action_replace_all_project)
+
         plugin_menu = menu_bar.addMenu("&Plugin")
 
         self.action_apply_plugin = QAction("&Apply Plugin...", view)
@@ -94,6 +124,7 @@ class MenuBarComponent(QObject):
         menu_bar.setCornerWidget(self.menu_theme_btn, Qt.Corner.TopRightCorner)
 
         self.update_file_menu_state(False)
+        self.set_history_state(False, False)
 
     def update_file_menu_state(self, is_active, has_plugin=False):
         self.action_new.setEnabled(not is_active)
@@ -106,3 +137,9 @@ class MenuBarComponent(QObject):
         self.action_export_csv.setEnabled(is_active)
         self.action_apply_plugin.setEnabled(is_active)
         self.action_remove_plugin.setEnabled(is_active and has_plugin)
+        self.action_replace_all.setEnabled(is_active)
+        self.action_replace_all_project.setEnabled(is_active)
+
+    def set_history_state(self, can_undo, can_redo):
+        self.action_undo.setEnabled(can_undo)
+        self.action_redo.setEnabled(can_redo)

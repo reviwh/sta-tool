@@ -49,10 +49,16 @@ class ShortcutsDialog(QDialog):
             ("Ctrl+E", "Export as CSV"),
             ("F5", "Repack to .sta"),
             ("Ctrl+H", "Replace All"),
+            ("Ctrl+Shift+H", "Replace All in Project"),
             ("Ctrl+P", "Apply Plugin"),
             ("Ctrl+Shift+P", "Remove Plugin"),
             ("F1", "Toggle Keyboard Shortcuts"),
             ("F3", "Focus Filter Field"),
+        ])
+
+        self._add_shortcuts_section(content_layout, "History", [
+            ("Ctrl+Z", "Undo"),
+            ("Ctrl+Y", "Redo"),
         ])
 
         self._add_shortcuts_section(content_layout, "Editor & Navigation", [
