@@ -24,6 +24,9 @@ __pycache__/
 .vscode/
 .idea/
 
+# Agent skills
+.agents/
+
 # Local Utility Scripts
 replace.sh
 split_icon.py
