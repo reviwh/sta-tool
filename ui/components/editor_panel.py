@@ -24,6 +24,7 @@ class EditorPanelComponent(QWidget):
     undo_requested = pyqtSignal()
     redo_requested = pyqtSignal()
     undo_state_changed = pyqtSignal(bool, bool)
+    request_focus_list = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -89,9 +90,11 @@ class EditorPanelComponent(QWidget):
 
         self.orig_edit = QTextEdit()
         self.orig_edit.setReadOnly(True)
+        self.orig_edit.setTabChangesFocus(True)
         self.orig_container = self._make_editor_container(self.orig_edit, "original")
 
         self.trans_edit = QTextEdit()
+        self.trans_edit.setTabChangesFocus(True)
         self.trans_container = self._make_editor_container(
             self.trans_edit, "translated"
         )
@@ -164,7 +167,18 @@ class EditorPanelComponent(QWidget):
                 self.redo_requested.emit()
                 return True
 
+            if key == Qt.Key.Key_Escape:
+                self.request_focus_list.emit()
+                return True
+
         return super().eventFilter(obj, event)
+
+    def focus_editor(self):
+        """Give the translation field focus with the cursor at the end."""
+        self.trans_edit.setFocus()
+        cursor = self.trans_edit.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.trans_edit.setTextCursor(cursor)
 
     def has_local_focus(self):
         """True when the translation text field owns the keyboard focus."""

@@ -38,6 +38,11 @@ class StaTranslator(QMainWindow):
     replace_all_project_requested = pyqtSignal()
     undo_requested = pyqtSignal()
     redo_requested = pyqtSignal()
+    focus_file_tree_requested = pyqtSignal()
+    focus_string_list_requested = pyqtSignal()
+    focus_editor_requested = pyqtSignal()
+    focus_next_pane_requested = pyqtSignal()
+    focus_prev_pane_requested = pyqtSignal()
 
     def __init__(self):
         super().__init__()

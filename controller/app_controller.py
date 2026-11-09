@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QFileDialog, QMessageBox, QApplication
 from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
@@ -60,13 +60,22 @@ class AppController(QObject):
         v.redo_requested.connect(self._on_redo_requested)
         m.history_changed.connect(self._update_history_menu_state)
 
+        # Keyboard navigation
+        v.focus_file_tree_requested.connect(self._focus_file_tree)
+        v.focus_string_list_requested.connect(self._focus_string_list)
+        v.focus_editor_requested.connect(self._focus_editor)
+        v.focus_next_pane_requested.connect(lambda: self._cycle_pane(1))
+        v.focus_prev_pane_requested.connect(lambda: self._cycle_pane(-1))
+
         # File tree
         v.file_section.file_selected.connect(self._on_file_selected)
         v.file_section.filter_changed.connect(self._on_filter_changed)
+        v.file_section.request_focus_list.connect(self._focus_string_list)
 
         # String list
         v.string_section.string_selected.connect(self._on_string_selected)
         v.string_section.request_focus_editor.connect(self._focus_translation_editor)
+        v.string_section.request_focus_tree.connect(self._focus_file_tree)
         v.string_section.import_txt_requested.connect(self._on_import_txt_requested)
         v.string_section.replace_all_requested.connect(self._on_replace_all_requested)
 
@@ -78,6 +87,7 @@ class AppController(QObject):
         v.editor_section.copy_occurred.connect(lambda msg: self._show_toast(msg))
         v.editor_section.undo_requested.connect(self._on_undo_requested)
         v.editor_section.redo_requested.connect(self._on_redo_requested)
+        v.editor_section.request_focus_list.connect(self._focus_string_list)
         v.editor_section.undo_state_changed.connect(
             lambda *_: self._update_history_menu_state()
         )
@@ -168,6 +178,60 @@ class AppController(QObject):
         cursor = self.view.editor_section.trans_edit.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
         self.view.editor_section.trans_edit.setTextCursor(cursor)
+
+    # --- Keyboard navigation -------------------------------------------------
+
+    def _focus_file_tree(self):
+        if not self.model.is_active():
+            return
+        self.view.file_section.focus_tree()
+
+    def _focus_string_list(self):
+        if not self.model.is_active():
+            return
+        self.view.string_section.focus_list()
+
+    def _focus_editor(self):
+        if self.current_file_idx == -1 or self.current_string_idx == -1:
+            return
+        self.view.editor_section.focus_editor()
+
+    def _current_pane(self):
+        """Return the name of the pane that currently owns the focus."""
+        focused = QApplication.focusWidget()
+        if focused is None:
+            return None
+        for name, widget in (
+            ("file", self.view.file_section),
+            ("strings", self.view.string_section),
+            ("editor", self.view.editor_section),
+        ):
+            if focused is widget or widget.isAncestorOf(focused):
+                return name
+        return None
+
+    def _cycle_pane(self, step):
+        """Move the keyboard focus to the next/previous pane (F6 / Shift+F6)."""
+        if not self.model.is_active():
+            return
+
+        panes = ["file", "strings"]
+        if self.current_file_idx != -1 and self.current_string_idx != -1:
+            panes.append("editor")
+
+        current = self._current_pane()
+        if current in panes:
+            index = (panes.index(current) + step) % len(panes)
+        else:
+            index = 0 if step > 0 else len(panes) - 1
+
+        pane = panes[index]
+        if pane == "file":
+            self._focus_file_tree()
+        elif pane == "strings":
+            self._focus_string_list()
+        else:
+            self._focus_editor()
 
     def _on_save_translation(self, text):
         if self.current_file_idx == -1 or self.current_string_idx == -1:
@@ -320,7 +384,9 @@ class AppController(QObject):
         keyword = self.view.file_section.get_search_text()
         show_warnings = self.view.file_section.is_warning_filter_active()
         visible_files = self.model.get_filtered_files(keyword, show_warnings)
-        self.view.file_section.set_data(visible_files, self.model.data)
+        self.view.file_section.set_data(
+            visible_files, self.model.data, active_idx=self.current_file_idx
+        )
         if self.current_file_idx != -1:
             self._on_file_selected(self.current_file_idx)
         else:

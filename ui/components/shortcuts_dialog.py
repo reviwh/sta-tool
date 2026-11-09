@@ -68,6 +68,16 @@ class ShortcutsDialog(QDialog):
             ("Ctrl+Shift+.", "Increase Font size"),
         ])
 
+        self._add_shortcuts_section(content_layout, "Pane Navigation", [
+            ("Ctrl+1", "Focus File Tree"),
+            ("Ctrl+2", "Focus String List"),
+            ("Ctrl+3", "Focus Editor"),
+            ("F6", "Next Pane"),
+            ("Shift+F6", "Previous Pane"),
+            ("Enter", "Edit Selected String"),
+            ("Esc", "Leave Editor / String List"),
+        ])
+
         content_layout.addStretch()
         layout.addWidget(scroll)
 

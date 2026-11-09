@@ -92,6 +92,45 @@ class MenuBarComponent(QObject):
         )
         edit_menu.addAction(self.action_replace_all_project)
 
+        go_menu = menu_bar.addMenu("&Go")
+
+        self.action_focus_files = QAction("Focus &File Tree", view)
+        self.action_focus_files.setShortcut(QKeySequence("Ctrl+1"))
+        self.action_focus_files.triggered.connect(
+            self._view.focus_file_tree_requested
+        )
+        go_menu.addAction(self.action_focus_files)
+
+        self.action_focus_strings = QAction("Focus &String List", view)
+        self.action_focus_strings.setShortcut(QKeySequence("Ctrl+2"))
+        self.action_focus_strings.triggered.connect(
+            self._view.focus_string_list_requested
+        )
+        go_menu.addAction(self.action_focus_strings)
+
+        self.action_focus_editor = QAction("Focus &Editor", view)
+        self.action_focus_editor.setShortcut(QKeySequence("Ctrl+3"))
+        self.action_focus_editor.triggered.connect(
+            self._view.focus_editor_requested
+        )
+        go_menu.addAction(self.action_focus_editor)
+
+        go_menu.addSeparator()
+
+        self.action_next_pane = QAction("&Next Pane", view)
+        self.action_next_pane.setShortcut(QKeySequence("F6"))
+        self.action_next_pane.triggered.connect(
+            self._view.focus_next_pane_requested
+        )
+        go_menu.addAction(self.action_next_pane)
+
+        self.action_prev_pane = QAction("&Previous Pane", view)
+        self.action_prev_pane.setShortcut(QKeySequence("Shift+F6"))
+        self.action_prev_pane.triggered.connect(
+            self._view.focus_prev_pane_requested
+        )
+        go_menu.addAction(self.action_prev_pane)
+
         plugin_menu = menu_bar.addMenu("&Plugin")
 
         self.action_apply_plugin = QAction("&Apply Plugin...", view)
