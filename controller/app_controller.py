@@ -526,6 +526,7 @@ class AppController(QObject):
             self._replace_dialog.set_scope(scope)
             self._replace_dialog.raise_()
             self._replace_dialog.activateWindow()
+            self._replace_dialog.focus_find()
             return
 
         has_file = self.current_file_idx != -1

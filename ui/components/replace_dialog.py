@@ -39,6 +39,16 @@ class ReplaceDialog(ClearButtonMixin, QDialog):
         self.init_ui(has_file)
         self._restore_state(state, scope)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.focus_find()
+
+    def focus_find(self):
+        """Focus the find field, selecting any existing text."""
+        self.find_edit.setFocus(Qt.FocusReason.OtherFocusReason)
+        if self.find_edit.text():
+            self.find_edit.selectAll()
+
     def init_ui(self, has_file=True):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -55,9 +65,7 @@ class ReplaceDialog(ClearButtonMixin, QDialog):
         self._add_scope_tab(
             self.SCOPE_PROJECT,
             "Whole project",
-            "Replace inside every file of the project.\n"
-            "\n"
-            "The whole replacement can be undone in a single step.",
+            "Replace inside every file of the project.",
         )
         layout.addWidget(self.scope_tabs)
         self._install_tab_cursor()
@@ -102,7 +110,6 @@ class ReplaceDialog(ClearButtonMixin, QDialog):
         self._install_scope_shortcuts()
 
     def _install_scope_shortcuts(self):
-        """Allow scope switching with the same keys used by the main window."""
         for keys, scope in (
             (QKeySequence("Ctrl+H"), self.SCOPE_FILE),
             (QKeySequence("Ctrl+Shift+H"), self.SCOPE_PROJECT),
@@ -119,12 +126,6 @@ class ReplaceDialog(ClearButtonMixin, QDialog):
         self._tab_bar.installEventFilter(self)
 
     def _setup_line_breaks(self, edit):
-        """Allow line breaks inside a single line field.
-
-        The stored entries keep their line breaks as the two characters
-        ``\\n``, so a real line break typed with Shift+Enter or pasted into
-        the field is kept as that escape sequence.
-        """
         self._break_edits.append(edit)
         edit.installEventFilter(self)
         edit.textChanged.connect(lambda _text, e=edit: self._normalize_breaks(e))

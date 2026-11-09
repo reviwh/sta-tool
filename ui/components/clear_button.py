@@ -16,6 +16,7 @@ class ClearButtonMixin:
         btn = QToolButton(edit)
         btn.setIcon(Theme.get_icon("close"))
         btn.setIconSize(QSize(14, 14))
+        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setToolTip("Clear text")
         btn.setStyleSheet("QToolButton { background: transparent; border: none; }")

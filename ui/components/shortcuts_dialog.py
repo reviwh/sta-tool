@@ -59,7 +59,6 @@ class ShortcutsDialog(QDialog):
         self._add_shortcuts_section(content_layout, "History", [
             ("Ctrl+Z", "Undo"),
             ("Ctrl+Y", "Redo"),
-            ("Ctrl+Shift+Z", "Redo inside text field"),
         ])
 
         self._add_shortcuts_section(content_layout, "Editor & Navigation", [
