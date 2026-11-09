@@ -28,7 +28,7 @@
     </td>
     <td width="50%" valign="top">
       <strong>Project management</strong><br />
-      Open, save and navigate a whole project with the integrated file tree.
+      Open, save and navigate a whole project with the integrated file tree, and jump back in from the recent projects list.
     </td>
   </tr>
   <tr>

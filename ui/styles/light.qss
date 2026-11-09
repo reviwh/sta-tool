@@ -77,11 +77,33 @@ QPushButton#copy_btn:hover {
 }
 
 /* Welcome panel action buttons */
-QPushButton#btn_extract, QPushButton#btn_load {
-    color: #1F1F1F;
-    border-color: #1F1F1F;
+QPushButton#btn_extract {
+    background-color: #3982F7;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
 }
-QPushButton#btn_extract:hover, QPushButton#btn_load:hover {
+QPushButton#btn_extract:hover {
+    background-color: #5094ff;
+}
+QPushButton#btn_extract:pressed {
+    background-color: #2f6fd0;
+}
+
+QPushButton#btn_load {
+    background-color: #ffffff;
+    color: #1F1F1F;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 8px 16px;
+}
+QPushButton#btn_load:hover {
+    background-color: #F1F5F9;
+    border-color: #3982F7;
+}
+QPushButton#btn_load:pressed {
     background-color: #E5E7EB;
 }
 
@@ -499,8 +521,12 @@ QFrame#welcome_container {
     border: 1px solid #E5E7EB;
 }
 
+QWidget#recent_section {
+    background-color: #ffffff;
+}
+
 QLabel#welcome_title {
-    font-size: 18pt;
+    font-size: 20pt;
     font-weight: 500;
     color: #3982F7;
     border: none;
@@ -508,17 +534,58 @@ QLabel#welcome_title {
 }
 
 QLabel#welcome_desc {
-    color: #1F1F1F;
+    color: #6B7280;
     border: none;
     background: transparent;
+}
+
+QLabel#welcome_section {
+    color: #6B7280;
+    border: none;
+    background: transparent;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 
 QLabel#welcome_footer {
     color: #6B7280;
     border: none;
     font-size: 8pt;
-    margin-top: 10px;
+    margin-top: 6px;
     background: transparent;
+}
+
+QFrame#recent_project_row {
+    background-color: #ffffff;
+    color: #1F1F1F;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+}
+QFrame#recent_project_row:hover {
+    background-color: #F1F5F9;
+    border-color: #3982F7;
+}
+QFrame#recent_project_row:focus {
+    border-color: #3982F7;
+}
+
+QLabel#recent_name {
+    color: #1F1F1F;
+    background: transparent;
+    border: none;
+}
+
+QLabel#recent_path {
+    color: #6B7280;
+    background: transparent;
+    border: none;
+    font-size: 8pt;
+}
+
+QLabel#recent_icon, QLabel#recent_arrow {
+    background: transparent;
+    border: none;
 }
 
 /* Dialogs */
@@ -532,13 +599,26 @@ QLabel#welcome_footer {
     border-top: 1px solid #E5E7EB;
 }
 
-QLabel#shortcut_key {
+QFrame#shortcuts_section {
+    background-color: #ffffff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+
+QFrame#shortcut_key {
     border: 1px solid #E5E7EB;
     background-color: #F1F5F9;
     color: #1F1F1F;
     border-radius: 4px;
-    padding: 2px 6px;
+    padding: 4px 8px;
+    font-size: 9pt;
     font-weight: bold;
+}
+
+QLabel#shortcut_key_part {
+    background: transparent;
+    border: none;
+    font-size: 9pt;
 }
 
 QLabel#shortcut_desc {

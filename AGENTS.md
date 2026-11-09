@@ -36,9 +36,10 @@ main.py — QApplication init, wires Model → View → Controller
   ├── core/project_manager.py  — QObject with signals; lifecycle owner
   │     (load, save, extract, repack, autosave, CSV/TXT import/export,
   │      replace-all, plugin apply/reverse, undo/redo history)
-  │     ├── core/extractor.py  — folder → project JSON
-  │     ├── core/repacker.py   — project JSON → .sta folder
-  │     └── core/undo_stack.py — EditCommand + UndoStack (history)
+  │     ├── core/extractor.py  — folder → project JSON
+  │     ├── core/repacker.py   — project JSON → .sta folder
+  │     ├── core/recent_projects.py — QSettings-backed recent project list
+  │     └── core/undo_stack.py — EditCommand + UndoStack (history)
   ├── ui/main_window.py:StaTranslator — QMainWindow, widget composition
   │   ├── ui/components/file_tree.py
   │   ├── ui/components/string_list.py
@@ -61,6 +62,7 @@ All signals connected in `AppController._connect_signals()`. Window close goes t
 - **Window title**: `STA Translator Tool - Folder/Name *` (asterisk when dirty)
 - **Progress bar**: shows % of entries with non-whitespace translations
 - **Copyright footer**: `© 2024 Revi Wardana Putra.`
+- **Recent projects**: welcome screen lists up to 5 existing project JSONs (QSettings `Reviwh/STA Translator`); updated on load and save-as, missing files are pruned automatically
 
 ## Replace All
 

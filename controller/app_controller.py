@@ -4,6 +4,11 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox, QApplication
 from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
+from core.recent_projects import (
+    add_recent_project,
+    get_recent_projects,
+    remove_recent_project,
+)
 from ui.theme import Theme
 from ui.components.replace_dialog import ReplaceDialog
 from ui.components.shortcuts_dialog import ShortcutsDialog
@@ -95,6 +100,11 @@ class AppController(QObject):
         # Welcome panel
         v.welcome_panel.extract_requested.connect(self._on_extract_requested)
         v.welcome_panel.load_requested.connect(self._on_load_requested)
+        v.welcome_panel.recent_project_requested.connect(
+            self._on_recent_project_requested
+        )
+
+        self._refresh_recent_projects()
 
     def _flush_save(self):
         if self.view.editor_section.save_timer.isActive():
@@ -107,6 +117,7 @@ class AppController(QObject):
         self._apply_editor_font()
         self._update_ui_state()
         self._refresh_ui()
+        self._remember_recent_project(path)
         self.view.status_bar.showMessage(f"Loaded: {os.path.basename(path)}")
         self._show_toast(f"Loaded: {os.path.basename(path)}")
 
@@ -443,6 +454,31 @@ class AppController(QObject):
                 f"STA Translator Tool - {Path(*Path(path).parts[-2:])}"
             )
 
+    def _refresh_recent_projects(self):
+        self.view.welcome_panel.set_recent_projects(get_recent_projects())
+
+    def _remember_recent_project(self, path):
+        add_recent_project(path)
+        self._refresh_recent_projects()
+
+    def _on_recent_project_requested(self, path):
+        if self.model.is_active():
+            return
+        if not os.path.isfile(path):
+            remove_recent_project(path)
+            self._refresh_recent_projects()
+            self._show_toast("Project file not found", duration=2000)
+            return
+
+        success, _ = self.model.load(path)
+        if success:
+            self.view.setWindowTitle(
+                f"STA Translator Tool - {Path(*Path(path).parts[-2:])}"
+            )
+        else:
+            remove_recent_project(path)
+            self._refresh_recent_projects()
+
     def _on_save_requested(self):
         if not self.model.is_active():
             return
@@ -463,6 +499,7 @@ class AppController(QObject):
                 path += ".json"
             self.model.path = path
             self.model.save(path)
+            self._remember_recent_project(path)
             self.view.setWindowTitle(
                 f"STA Translator Tool - {Path(*Path(path).parts[-2:])}"
             )
