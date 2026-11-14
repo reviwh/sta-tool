@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox, QApplication
 from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
+from core.color_cache import trim_custom_colors
 from core.recent_projects import (
     add_recent_project,
     get_recent_projects,
@@ -25,6 +26,7 @@ class AppController(QObject):
         self._toast = None
         self._replace_state = None
         self._replace_dialog = None
+        self._shortcuts_dialog = None
         self._connect_signals()
 
     def _connect_signals(self):
@@ -110,11 +112,13 @@ class AppController(QObject):
         if self.view.editor_section.save_timer.isActive():
             self.view.editor_section.save_timer.stop()
             self._on_save_translation(
-                self.view.editor_section.trans_edit.toPlainText()
+                self.view.editor_section.get_translation_text()
             )
 
     def _on_project_loaded(self, path):
         self._apply_editor_font()
+        trim_custom_colors()
+        self.view.editor_section.set_project_colors(self.model.get_colors())
         self._update_ui_state()
         self._refresh_ui()
         self._remember_recent_project(path)
@@ -123,6 +127,7 @@ class AppController(QObject):
 
     def _on_project_closed(self):
         self._close_replace_dialog()
+        self.view.editor_section.set_project_colors([])
         self._update_ui_state()
         self.view.status_bar.showMessage("Ready")
 
@@ -719,21 +724,34 @@ class AppController(QObject):
         self.view.update_global_progress(self.model.data)
 
     def _on_shortcuts_requested(self):
+        if self._shortcuts_dialog is not None:
+            self._shortcuts_dialog.close()
+            return
         dialog = ShortcutsDialog(self.view)
-        dialog.exec()
+        dialog.finished.connect(self._on_shortcuts_dialog_finished)
+        self._shortcuts_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _on_shortcuts_dialog_finished(self, _result):
+        dialog = self._shortcuts_dialog
+        self._shortcuts_dialog = None
+        if dialog is not None:
+            dialog.deleteLater()
 
     def _go_to_next_string(self):
         v = self.view
         curr = v.string_section.list_widget.currentRow()
         if curr < v.string_section.list_widget.count() - 1:
-            self._on_save_translation(v.editor_section.trans_edit.toPlainText())
+            self._on_save_translation(v.editor_section.get_translation_text())
             v.string_section.list_widget.setCurrentRow(curr + 1)
 
     def _go_to_prev_string(self):
         v = self.view
         curr = v.string_section.list_widget.currentRow()
         if curr > 0:
-            self._on_save_translation(v.editor_section.trans_edit.toPlainText())
+            self._on_save_translation(v.editor_section.get_translation_text())
             v.string_section.list_widget.setCurrentRow(curr - 1)
 
     def _on_font_settings_changed(self, name, size):

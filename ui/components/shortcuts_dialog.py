@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
 )
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtGui import QGuiApplication, QShortcut, QKeySequence
 from ui.theme import Theme
 
 
@@ -98,6 +98,9 @@ class ShortcutsDialog(QDialog):
         self.setFixedWidth(640)
         self.setMinimumHeight(460)
 
+        self._toggle_shortcut = QShortcut(QKeySequence("F1"), self)
+        self._toggle_shortcut.activated.connect(self.close)
+
         self.init_ui()
 
     def init_ui(self):
@@ -150,6 +153,7 @@ class ShortcutsDialog(QDialog):
         self._add_shortcuts_section(content_layout, "Text Editing & Font", [
             ("Ctrl+Enter", "Next String Line"),
             ("Ctrl+Shift+Enter", "Previous String Line"),
+            ("Ctrl+K", "Toggle Text Color Tag"),
             ("Ctrl+Shift+,", "Decrease Font size"),
             ("Ctrl+Shift+.", "Increase Font size"),
         ])
