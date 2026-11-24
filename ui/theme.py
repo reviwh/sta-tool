@@ -11,6 +11,7 @@ class Theme:
     _qss_cache = ""
 
     WARNING = "#E7A917"
+    ERROR = "#EF4444"
 
     BG_APP = "#212121"
     BG_PANEL = "#181818"
@@ -47,6 +48,7 @@ class Theme:
             cls.TEXT_SECONDARY = "#6B7280"
             cls.BORDER = "#E5E7EB"
             cls.SECONDARY_BG_COLOR = "#F1F5F9"
+            cls.ERROR = "#DC2626"
             cls.ICON_PATH = resource_path("assets/icons/black/")
         else:
             cls.BG_APP = "#212121"
@@ -57,6 +59,7 @@ class Theme:
             cls.TEXT_SECONDARY = "#9CA3AF"
             cls.BORDER = "#2f2f2f"
             cls.SECONDARY_BG_COLOR = "#3a3a3a"
+            cls.ERROR = "#EF4444"
             cls.ICON_PATH = resource_path("assets/icons/white/")
 
         cls._load_qss()

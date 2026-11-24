@@ -28,7 +28,7 @@
     </td>
     <td width="50%" valign="top">
       <strong>Project management</strong><br />
-      Open, save and navigate a whole project with the integrated file tree.
+      Open, save and navigate a whole project with the integrated file tree, and jump back in from the recent projects list.
     </td>
   </tr>
   <tr>
@@ -66,6 +66,7 @@
 | `Ctrl+I` / `Ctrl+E` | Import from / export to CSV |
 | `F5` | Repack to `.sta` |
 | `Ctrl+H` / `Ctrl+Shift+H` | Replace All (current file / whole project) |
+| `Ctrl+G` | Go to Line |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+P` / `Ctrl+Shift+P` | Apply / remove plugin |
 | `F1` | Toggle keyboard shortcuts |

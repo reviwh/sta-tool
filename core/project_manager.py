@@ -3,7 +3,7 @@ import csv
 import json
 import os
 import re
-from core.extractor import extract_folder_to_json
+from core.extractor import collect_project_colors, extract_folder_to_json
 from core.repacker import repack_from_json
 from core.undo_stack import EditCommand, UndoStack
 
@@ -63,6 +63,32 @@ class ProjectManager(QObject):
     def data(self):
         return self.full_data.get("content", [])
 
+    def _ensure_colors_setting(self):
+        settings = self.full_data.get("settings")
+        if not isinstance(settings, dict):
+            return
+        if "colors" in settings:
+            return
+        settings["colors"] = collect_project_colors(self.data)
+        if not self.path:
+            return
+        try:
+            with open(self.path, "w", encoding="utf-8") as f:
+                json.dump(self.full_data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Failed to update project colors setting: {e}")
+
+    def get_colors(self):
+        settings = self.full_data.get("settings", {})
+        colors = settings.get("colors", []) if isinstance(settings, dict) else []
+        if not isinstance(colors, list):
+            return []
+        return [
+            color.strip()
+            for color in colors
+            if isinstance(color, str) and color.strip()
+        ]
+
     def load(self, path):
         if os.path.exists(path):
             try:
@@ -77,6 +103,7 @@ class ProjectManager(QObject):
                 self.full_data = data
                 self.path = path
                 self.is_dirty = False
+                self._ensure_colors_setting()
                 self._clear_history()
                 self.apply_plugin()  # Auto-apply plugin on load
                 self.autosave_timer.start(300000)  # 5 minutes

@@ -117,6 +117,15 @@ class MenuBarComponent(QObject):
 
         go_menu.addSeparator()
 
+        self.action_goto_line = QAction("&Go to Line...", view)
+        self.action_goto_line.setShortcut(QKeySequence("Ctrl+G"))
+        self.action_goto_line.triggered.connect(
+            self._view.goto_line_requested
+        )
+        go_menu.addAction(self.action_goto_line)
+
+        go_menu.addSeparator()
+
         self.action_next_pane = QAction("&Next Pane", view)
         self.action_next_pane.setShortcut(QKeySequence("F6"))
         self.action_next_pane.triggered.connect(

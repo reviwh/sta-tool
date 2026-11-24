@@ -1,7 +1,35 @@
 import json
 import os
+import re
 import struct
 from pathlib import Path
+
+_COLOR_TAG_RE = re.compile(r"<COLOR=0x([0-9A-Fa-f]{8})>", re.IGNORECASE)
+
+
+def collect_project_colors(content):
+    """Return every unique color tag used in the project content."""
+    colors = []
+    seen = set()
+    for file_entry in content:
+        if not isinstance(file_entry, dict):
+            continue
+        entries = file_entry.get("entries", [])
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            for key in ("original", "translated"):
+                text = entry.get(key)
+                if not isinstance(text, str):
+                    continue
+                for match in _COLOR_TAG_RE.finditer(text):
+                    color = "#" + match.group(1)[:6].lower()
+                    if color not in seen:
+                        seen.add(color)
+                        colors.append(color)
+    return colors
 
 
 def extract_folder_to_json(input_folder, output_json):
@@ -89,6 +117,7 @@ def extract_folder_to_json(input_folder, output_json):
         "settings": {
             "font": {"name": "Noto Sans JP", "size": 12},
             "plugin": {"path": ""},
+            "colors": collect_project_colors(extracted_content),
         },
         "header": header_data,
         "content": extracted_content,

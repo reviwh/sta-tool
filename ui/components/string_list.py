@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
 )
 from PyQt6.QtCore import pyqtSignal, Qt, QSize, QEvent
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QKeySequence, QShortcut
 
 
 class StringListComponent(QWidget):
@@ -19,6 +19,7 @@ class StringListComponent(QWidget):
     request_focus_tree = pyqtSignal()
     import_txt_requested = pyqtSignal()
     replace_all_requested = pyqtSignal()
+    goto_line_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,6 +77,13 @@ class StringListComponent(QWidget):
             lambda: self.request_focus_editor.emit()
         )
         self.list_widget.installEventFilter(self)
+
+        self.goto_shortcut = QShortcut(QKeySequence("Ctrl+G"), self)
+        self.goto_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.goto_shortcut.activated.connect(self._on_goto_line)
+
+    def _on_goto_line(self):
+        self.goto_line_requested.emit()
 
     def eventFilter(self, obj, event):
         if obj is self.list_widget and event.type() == QEvent.Type.KeyPress:
@@ -162,6 +170,14 @@ class StringListComponent(QWidget):
         self.path_label.setFont(font)
         self.btn_import_txt.setFont(font)
         self.btn_replace_all.setFont(font)
+
+    def goto_line(self, line_number):
+        row = line_number - 1
+        if 0 <= row < self.list_widget.count():
+            self.list_widget.setCurrentRow(row)
+            self.list_widget.setFocus()
+            return True
+        return False
 
     def set_file_path(self, path):
         parts = Path(path).parts

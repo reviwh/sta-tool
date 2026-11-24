@@ -4,9 +4,16 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox, QApplication
 from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
+from core.color_cache import trim_custom_colors
+from core.recent_projects import (
+    add_recent_project,
+    get_recent_projects,
+    remove_recent_project,
+)
 from ui.theme import Theme
 from ui.components.replace_dialog import ReplaceDialog
 from ui.components.shortcuts_dialog import ShortcutsDialog
+from ui.components.goto_line_dialog import GoToLineDialog
 from ui.components.toast import ToastNotification
 
 
@@ -20,6 +27,7 @@ class AppController(QObject):
         self._toast = None
         self._replace_state = None
         self._replace_dialog = None
+        self._shortcuts_dialog = None
         self._connect_signals()
 
     def _connect_signals(self):
@@ -66,6 +74,7 @@ class AppController(QObject):
         v.focus_editor_requested.connect(self._focus_editor)
         v.focus_next_pane_requested.connect(lambda: self._cycle_pane(1))
         v.focus_prev_pane_requested.connect(lambda: self._cycle_pane(-1))
+        v.goto_line_requested.connect(self._on_goto_line_requested)
 
         # File tree
         v.file_section.file_selected.connect(self._on_file_selected)
@@ -95,23 +104,32 @@ class AppController(QObject):
         # Welcome panel
         v.welcome_panel.extract_requested.connect(self._on_extract_requested)
         v.welcome_panel.load_requested.connect(self._on_load_requested)
+        v.welcome_panel.recent_project_requested.connect(
+            self._on_recent_project_requested
+        )
+
+        self._refresh_recent_projects()
 
     def _flush_save(self):
         if self.view.editor_section.save_timer.isActive():
             self.view.editor_section.save_timer.stop()
             self._on_save_translation(
-                self.view.editor_section.trans_edit.toPlainText()
+                self.view.editor_section.get_translation_text()
             )
 
     def _on_project_loaded(self, path):
         self._apply_editor_font()
+        trim_custom_colors()
+        self.view.editor_section.set_project_colors(self.model.get_colors())
         self._update_ui_state()
         self._refresh_ui()
+        self._remember_recent_project(path)
         self.view.status_bar.showMessage(f"Loaded: {os.path.basename(path)}")
         self._show_toast(f"Loaded: {os.path.basename(path)}")
 
     def _on_project_closed(self):
         self._close_replace_dialog()
+        self.view.editor_section.set_project_colors([])
         self._update_ui_state()
         self.view.status_bar.showMessage("Ready")
 
@@ -195,6 +213,26 @@ class AppController(QObject):
         if self.current_file_idx == -1 or self.current_string_idx == -1:
             return
         self.view.editor_section.focus_editor()
+
+    def _on_goto_line_requested(self):
+        if not self.model.is_active():
+            return
+        if self.current_file_idx == -1:
+            return
+        content = self.model.data
+        if self.current_file_idx >= len(content):
+            return
+        file_data = content[self.current_file_idx]
+        entries = file_data.get("entries", [])
+        if not entries:
+            return
+        max_line = len(entries)
+        dialog = GoToLineDialog(max_line, self.view)
+        dialog.line_selected.connect(self._on_goto_line_confirmed)
+        dialog.exec()
+
+    def _on_goto_line_confirmed(self, line_number):
+        self.view.string_section.goto_line(line_number)
 
     def _current_pane(self):
         """Return the name of the pane that currently owns the focus."""
@@ -443,6 +481,31 @@ class AppController(QObject):
                 f"STA Translator Tool - {Path(*Path(path).parts[-2:])}"
             )
 
+    def _refresh_recent_projects(self):
+        self.view.welcome_panel.set_recent_projects(get_recent_projects())
+
+    def _remember_recent_project(self, path):
+        add_recent_project(path)
+        self._refresh_recent_projects()
+
+    def _on_recent_project_requested(self, path):
+        if self.model.is_active():
+            return
+        if not os.path.isfile(path):
+            remove_recent_project(path)
+            self._refresh_recent_projects()
+            self._show_toast("Project file not found", duration=2000)
+            return
+
+        success, _ = self.model.load(path)
+        if success:
+            self.view.setWindowTitle(
+                f"STA Translator Tool - {Path(*Path(path).parts[-2:])}"
+            )
+        else:
+            remove_recent_project(path)
+            self._refresh_recent_projects()
+
     def _on_save_requested(self):
         if not self.model.is_active():
             return
@@ -463,6 +526,7 @@ class AppController(QObject):
                 path += ".json"
             self.model.path = path
             self.model.save(path)
+            self._remember_recent_project(path)
             self.view.setWindowTitle(
                 f"STA Translator Tool - {Path(*Path(path).parts[-2:])}"
             )
@@ -682,21 +746,34 @@ class AppController(QObject):
         self.view.update_global_progress(self.model.data)
 
     def _on_shortcuts_requested(self):
+        if self._shortcuts_dialog is not None:
+            self._shortcuts_dialog.close()
+            return
         dialog = ShortcutsDialog(self.view)
-        dialog.exec()
+        dialog.finished.connect(self._on_shortcuts_dialog_finished)
+        self._shortcuts_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _on_shortcuts_dialog_finished(self, _result):
+        dialog = self._shortcuts_dialog
+        self._shortcuts_dialog = None
+        if dialog is not None:
+            dialog.deleteLater()
 
     def _go_to_next_string(self):
         v = self.view
         curr = v.string_section.list_widget.currentRow()
         if curr < v.string_section.list_widget.count() - 1:
-            self._on_save_translation(v.editor_section.trans_edit.toPlainText())
+            self._on_save_translation(v.editor_section.get_translation_text())
             v.string_section.list_widget.setCurrentRow(curr + 1)
 
     def _go_to_prev_string(self):
         v = self.view
         curr = v.string_section.list_widget.currentRow()
         if curr > 0:
-            self._on_save_translation(v.editor_section.trans_edit.toPlainText())
+            self._on_save_translation(v.editor_section.get_translation_text())
             v.string_section.list_widget.setCurrentRow(curr - 1)
 
     def _on_font_settings_changed(self, name, size):
