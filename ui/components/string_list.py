@@ -116,7 +116,7 @@ class StringListComponent(QWidget):
                     return True
 
             elif event.type() == QEvent.Type.ContextMenu:
-                self.context_menu_requested.emit(event.globalPosition().toPoint())
+                self.context_menu_requested.emit(event.globalPos())
                 return True
 
         return super().eventFilter(obj, event)

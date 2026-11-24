@@ -799,13 +799,13 @@ class AppController(QObject):
         lw = self.view.string_section.list_widget
         has_selection = len(lw.selectedItems()) > 0
 
-        copy_action = menu.addAction("Copy")
+        copy_action = menu.addAction("Copy\tCtrl+C")
         copy_action.setEnabled(has_selection)
         copy_action.triggered.connect(
             lambda: self._on_copy_requested(self.view.string_section._get_selected_rows())
         )
 
-        paste_action = menu.addAction("Paste")
+        paste_action = menu.addAction("Paste\tCtrl+V")
         paste_action.setEnabled(bool(self._clipboard_data))
         paste_action.triggered.connect(self._on_paste_requested)
 
