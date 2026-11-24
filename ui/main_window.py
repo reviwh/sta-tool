@@ -43,6 +43,7 @@ class StaTranslator(QMainWindow):
     focus_editor_requested = pyqtSignal()
     focus_next_pane_requested = pyqtSignal()
     focus_prev_pane_requested = pyqtSignal()
+    goto_line_requested = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -90,6 +91,7 @@ class StaTranslator(QMainWindow):
         self.h_splitter.addWidget(self.file_section)
 
         self.string_section = StringListComponent()
+        self.string_section.goto_line_requested.connect(self.goto_line_requested)
         self.h_splitter.addWidget(self.string_section)
 
         self.h_splitter.setStretchFactor(0, 1)

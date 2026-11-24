@@ -13,6 +13,7 @@ from core.recent_projects import (
 from ui.theme import Theme
 from ui.components.replace_dialog import ReplaceDialog
 from ui.components.shortcuts_dialog import ShortcutsDialog
+from ui.components.goto_line_dialog import GoToLineDialog
 from ui.components.toast import ToastNotification
 
 
@@ -73,6 +74,7 @@ class AppController(QObject):
         v.focus_editor_requested.connect(self._focus_editor)
         v.focus_next_pane_requested.connect(lambda: self._cycle_pane(1))
         v.focus_prev_pane_requested.connect(lambda: self._cycle_pane(-1))
+        v.goto_line_requested.connect(self._on_goto_line_requested)
 
         # File tree
         v.file_section.file_selected.connect(self._on_file_selected)
@@ -211,6 +213,26 @@ class AppController(QObject):
         if self.current_file_idx == -1 or self.current_string_idx == -1:
             return
         self.view.editor_section.focus_editor()
+
+    def _on_goto_line_requested(self):
+        if not self.model.is_active():
+            return
+        if self.current_file_idx == -1:
+            return
+        content = self.model.data
+        if self.current_file_idx >= len(content):
+            return
+        file_data = content[self.current_file_idx]
+        entries = file_data.get("entries", [])
+        if not entries:
+            return
+        max_line = len(entries)
+        dialog = GoToLineDialog(max_line, self.view)
+        dialog.line_selected.connect(self._on_goto_line_confirmed)
+        dialog.exec()
+
+    def _on_goto_line_confirmed(self, line_number):
+        self.view.string_section.goto_line(line_number)
 
     def _current_pane(self):
         """Return the name of the pane that currently owns the focus."""

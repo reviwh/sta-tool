@@ -148,6 +148,7 @@ class ShortcutsDialog(QDialog):
             ("Shift+F6", "Previous Pane"),
             ("Enter", "Edit Selected String"),
             ("Esc", "Leave Editor / String List"),
+            ("Ctrl+G", "Go to Line"),
         ])
 
         self._add_shortcuts_section(content_layout, "Text Editing & Font", [

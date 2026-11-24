@@ -624,7 +624,7 @@ QLabel#recent_icon, QLabel#recent_arrow {
     color: #1F1F1F;
 }
 
-#shortcuts_footer, #replace_footer {
+#shortcuts_footer, #replace_footer, #goto_line_footer {
     background-color: #ffffff;
     border-top: 1px solid #E5E7EB;
 }

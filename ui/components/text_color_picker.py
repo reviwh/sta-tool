@@ -342,7 +342,7 @@ class TextColorButton(QWidget):
         font = painter.font()
         font.setFamily(_noto_font_family())
         font.setBold(True)
-        font.setPixelSize(12)
+        font.setPointSize(10)
         painter.setFont(font)
         painter.drawText(QRectF(0, 0, 21, 19), Qt.AlignmentFlag.AlignCenter, "T")
 
