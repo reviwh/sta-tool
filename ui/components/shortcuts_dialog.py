@@ -140,6 +140,11 @@ class ShortcutsDialog(QDialog):
             ("Ctrl+Y", "Redo"),
         ])
 
+        self._add_shortcuts_section(content_layout, "Clipboard", [
+            ("Ctrl+C", "Copy String Line(s)"),
+            ("Ctrl+V", "Paste String Line(s)"),
+        ])
+
         self._add_shortcuts_section(content_layout, "Pane Focus & Switching", [
             ("Ctrl+1", "Focus File Tree"),
             ("Ctrl+2", "Focus String List"),

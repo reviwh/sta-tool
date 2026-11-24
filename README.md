@@ -67,6 +67,8 @@
 | `F5` | Repack to `.sta` |
 | `Ctrl+H` / `Ctrl+Shift+H` | Replace All (current file / whole project) |
 | `Ctrl+G` | Go to Line |
+| `Ctrl+C` / `Ctrl+V` | Copy / paste string lines |
+| `Ctrl+K` | Toggle text color tag |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+P` / `Ctrl+Shift+P` | Apply / remove plugin |
 | `F1` | Toggle keyboard shortcuts |
