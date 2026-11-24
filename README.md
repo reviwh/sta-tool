@@ -66,6 +66,7 @@
 | `Ctrl+I` / `Ctrl+E` | Import from / export to CSV |
 | `F5` | Repack to `.sta` |
 | `Ctrl+H` / `Ctrl+Shift+H` | Replace All (current file / whole project) |
+| `Ctrl+G` | Go to Line |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+P` / `Ctrl+Shift+P` | Apply / remove plugin |
 | `F1` | Toggle keyboard shortcuts |
