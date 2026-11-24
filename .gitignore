@@ -27,6 +27,7 @@ __pycache__/
 # Agent skills
 .agents/
 graphify-out/
+.opencode/
 
 # Local Utility Scripts
 replace.sh

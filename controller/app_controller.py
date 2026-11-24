@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from PyQt6.QtWidgets import QFileDialog, QMessageBox, QApplication
+from PyQt6.QtWidgets import QFileDialog, QMessageBox, QApplication, QMenu
 from PyQt6.QtCore import QObject, Qt
 
 from core.project_manager import ProjectManager
@@ -28,6 +28,7 @@ class AppController(QObject):
         self._replace_state = None
         self._replace_dialog = None
         self._shortcuts_dialog = None
+        self._clipboard_data = []
         self._connect_signals()
 
     def _connect_signals(self):
@@ -87,6 +88,9 @@ class AppController(QObject):
         v.string_section.request_focus_tree.connect(self._focus_file_tree)
         v.string_section.import_txt_requested.connect(self._on_import_txt_requested)
         v.string_section.replace_all_requested.connect(self._on_replace_all_requested)
+        v.string_section.copy_requested.connect(self._on_copy_requested)
+        v.string_section.paste_requested.connect(self._on_paste_requested)
+        v.string_section.context_menu_requested.connect(self._show_string_list_context_menu)
 
         # Editor
         v.editor_section.translation_changed.connect(self._on_save_translation)
@@ -726,6 +730,86 @@ class AppController(QObject):
         self._replace_dialog = None
         dialog.reject()
         dialog.deleteLater()
+
+    # --- Copy / Paste --------------------------------------------------------
+
+    def _on_copy_requested(self, rows):
+        """Copy translations from selected rows to internal clipboard."""
+        if self.current_file_idx == -1:
+            self._show_toast("No file selected")
+            return
+
+        entries = self.model.data[self.current_file_idx]["entries"]
+        lw = self.view.string_section.list_widget
+        copied = []
+
+        for row in rows:
+            item = lw.item(row)
+            if not item:
+                continue
+            real_idx = item.data(Qt.ItemDataRole.UserRole)
+            if real_idx is None or real_idx >= len(entries):
+                continue
+            trans = entries[real_idx].get("translated", "")
+            copied.append(trans)
+
+        if copied:
+            self._clipboard_data = copied
+            self._show_toast(f"Copied {len(copied)} line{'s' if len(copied) != 1 else ''}")
+
+    def _on_paste_requested(self):
+        """Paste clipboard translations at current row."""
+        if not self._clipboard_data:
+            self._show_toast("Nothing to paste")
+            return
+
+        if self.current_file_idx == -1 or self.current_string_idx == -1:
+            self._show_toast("No entry selected")
+            return
+
+        self._flush_save()
+        row = self._row_for_entry(self.current_string_idx)
+        if row < 0:
+            return
+
+        lw = self.view.string_section.list_widget
+        item = lw.item(row)
+        if not item:
+            return
+        target_entry_idx = item.data(Qt.ItemDataRole.UserRole)
+        if target_entry_idx is None:
+            return
+
+        self.model.paste_translations(self.current_file_idx, target_entry_idx, self._clipboard_data)
+        self._refresh_string_list_items()
+        self._display_entry(self.current_file_idx, target_entry_idx)
+        current_entries = self.model.data[self.current_file_idx]["entries"]
+        self.view.file_section.update_current_file_text(
+            self.current_file_idx, current_entries
+        )
+        self.view.update_global_progress(self.model.data)
+        self._show_toast(f"Pasted {len(self._clipboard_data)} line{'s' if len(self._clipboard_data) != 1 else ''}")
+
+    def _show_string_list_context_menu(self, pos):
+        """Show context menu for string list with Copy/Paste actions."""
+        if not self.model.is_active():
+            return
+
+        menu = QMenu(self.view)
+        lw = self.view.string_section.list_widget
+        has_selection = len(lw.selectedItems()) > 0
+
+        copy_action = menu.addAction("Copy\tCtrl+C")
+        copy_action.setEnabled(has_selection)
+        copy_action.triggered.connect(
+            lambda: self._on_copy_requested(self.view.string_section._get_selected_rows())
+        )
+
+        paste_action = menu.addAction("Paste\tCtrl+V")
+        paste_action.setEnabled(bool(self._clipboard_data))
+        paste_action.triggered.connect(self._on_paste_requested)
+
+        menu.exec(pos)
 
     def _refresh_after_replace(self, scope):
         """Repaint the widgets affected by a replace operation."""

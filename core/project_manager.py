@@ -489,6 +489,38 @@ class ProjectManager(QObject):
             self.is_dirty = True
             self.dirty_changed.emit()
 
+    def paste_translations(self, file_idx, start_entry_idx, translations):
+        """Paste a list of translations starting at start_entry_idx.
+
+        Each translation replaces the translated text of the corresponding entry.
+        Excess translations beyond the file length are truncated.
+        Records a single EditCommand for undo/redo.
+        """
+        if file_idx < 0 or file_idx >= len(self.data):
+            return
+
+        entries = self.data[file_idx]["entries"]
+        if start_entry_idx < 0 or start_entry_idx >= len(entries):
+            return
+
+        changes = []
+        for i, new_text in enumerate(translations):
+            target_idx = start_entry_idx + i
+            if target_idx >= len(entries):
+                break
+            old_text = entries[target_idx].get("translated", "")
+            if old_text != new_text:
+                entries[target_idx]["translated"] = new_text
+                changes.append((file_idx, target_idx, old_text, new_text))
+
+        if changes:
+            self.is_dirty = True
+            self.data_changed.emit()
+            focus = self._focus_target(file_idx, start_entry_idx)
+            self._push_command(
+                EditCommand(changes, focus=focus, label="Paste translations")
+            )
+
     # --- Undo / redo history -------------------------------------------------
 
     @staticmethod

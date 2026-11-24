@@ -8,8 +8,9 @@ from PyQt6.QtWidgets import (
     QListWidgetItem,
     QLabel,
     QPushButton,
+    QAbstractItemView,
 )
-from PyQt6.QtCore import pyqtSignal, Qt, QSize, QEvent
+from PyQt6.QtCore import pyqtSignal, Qt, QSize, QEvent, QPoint
 from PyQt6.QtGui import QFont, QColor, QKeySequence, QShortcut
 
 
@@ -20,6 +21,9 @@ class StringListComponent(QWidget):
     import_txt_requested = pyqtSignal()
     replace_all_requested = pyqtSignal()
     goto_line_requested = pyqtSignal()
+    copy_requested = pyqtSignal(list)
+    paste_requested = pyqtSignal()
+    context_menu_requested = pyqtSignal(QPoint)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -70,6 +74,7 @@ class StringListComponent(QWidget):
         self.list_widget = QListWidget()
         self.list_widget.setFont(Theme.FONT)
         self.list_widget.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         layout.addWidget(self.list_widget)
 
         self.list_widget.currentRowChanged.connect(self._on_row_changed)
@@ -86,16 +91,39 @@ class StringListComponent(QWidget):
         self.goto_line_requested.emit()
 
     def eventFilter(self, obj, event):
-        if obj is self.list_widget and event.type() == QEvent.Type.KeyPress:
-            key = event.key()
-            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                if self.list_widget.currentRow() >= 0:
-                    self.request_focus_editor.emit()
+        if obj is self.list_widget:
+            if event.type() == QEvent.Type.KeyPress:
+                key = event.key()
+                modifiers = event.modifiers()
+                ctrl = modifiers & Qt.KeyboardModifier.ControlModifier
+
+                if ctrl and key == Qt.Key.Key_C:
+                    selected_rows = self._get_selected_rows()
+                    if selected_rows:
+                        self.copy_requested.emit(selected_rows)
+                    return True
+
+                if ctrl and key == Qt.Key.Key_V:
+                    self.paste_requested.emit()
+                    return True
+
+                if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                    if self.list_widget.currentRow() >= 0:
+                        self.request_focus_editor.emit()
+                    return True
+                if key == Qt.Key.Key_Escape:
+                    self.request_focus_tree.emit()
+                    return True
+
+            elif event.type() == QEvent.Type.ContextMenu:
+                self.context_menu_requested.emit(event.globalPos())
                 return True
-            if key == Qt.Key.Key_Escape:
-                self.request_focus_tree.emit()
-                return True
+
         return super().eventFilter(obj, event)
+
+    def _get_selected_rows(self):
+        """Return list of selected visual row indices."""
+        return [self.list_widget.row(item) for item in self.list_widget.selectedItems()]
 
     def focus_list(self):
         """Give the list keyboard focus, selecting the first row if needed."""
